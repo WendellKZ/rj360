@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block titulo %}{% if object %}Editar lead{% else %}Novo lead{% endif %}{% endblock %}
+{% block conteudo %}
+<div class="mx-auto max-w-4xl rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+  <h1 class="mb-5 text-xl font-semibold">{% if object %}Editar {{ object }}{% else %}Novo lead{% endif %}</h1>
+  <form method="post" class="space-y-5">
+    {% csrf_token %}
+    {% include "partials/form_grid.html" with form=form %}
+    <div class="flex gap-2">
+      <button class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Salvar</button>
+      <a href="{% url 'crm:funil' %}" class="rounded-md px-4 py-2 text-sm text-slate-600 hover:bg-slate-100">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

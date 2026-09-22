@@ -1,0 +1,13 @@
+{% if is_paginated %}
+<nav class="mt-4 flex items-center justify-between text-sm">
+  <span class="text-slate-500">Pagina {{ page_obj.number }} de {{ paginator.num_pages }}</span>
+  <div class="flex gap-2">
+    {% if page_obj.has_previous %}
+      <a class="rounded border border-slate-300 bg-white px-3 py-1.5 hover:bg-slate-50" href="?{% if q %}q={{ q }}&{% endif %}page={{ page_obj.previous_page_number }}">anterior</a>
+    {% endif %}
+    {% if page_obj.has_next %}
+      <a class="rounded border border-slate-300 bg-white px-3 py-1.5 hover:bg-slate-50" href="?{% if q %}q={{ q }}&{% endif %}page={{ page_obj.next_page_number }}">proxima</a>
+    {% endif %}
+  </div>
+</nav>
+{% endif %}

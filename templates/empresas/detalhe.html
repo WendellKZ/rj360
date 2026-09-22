@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load rj_extras %}
+{% block titulo %}{{ empresa }} - {{ APP_NOME }}{% endblock %}
+{% block conteudo %}
+<div class="mb-5 flex flex-wrap items-start justify-between gap-3">
+  <div>
+    <h1 class="text-2xl font-semibold tracking-tight">{{ empresa }}</h1>
+    <p class="text-sm text-slate-500">{{ empresa.razao_social }} &middot; {{ empresa.cnpj|cnpj }} &middot; {{ empresa.get_porte_display }}</p>
+  </div>
+  <div class="flex gap-2 text-sm">
+    <a href="{% url 'empresas:editar' empresa.pk %}" class="rounded-md bg-white px-3 py-2 font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50">Editar</a>
+    <a href="{% url 'processos:novo' %}" class="rounded-md bg-emerald-600 px-3 py-2 font-medium text-white hover:bg-emerald-700">Novo processo</a>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+  <section class="lg:col-span-2 space-y-6">
+    <div class="rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+      <header class="border-b border-slate-200 px-5 py-3"><h2 class="font-semibold">Processos</h2></header>
+      <div class="divide-y divide-slate-100">
+        {% for processo in processos %}
+        <div class="flex items-center justify-between px-5 py-3 text-sm">
+          <div>
+            <a class="font-medium hover:underline" href="{{ processo.get_absolute_url }}">{{ processo.numero_formatado }}</a>
+            <p class="text-xs text-slate-500">{{ processo.comarca }} &middot; {{ processo.vara }}</p>
+          </div>
+          <span class="rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset {{ processo.cor_fase|badge_cor }}">{{ processo.get_fase_display }}</span>
+        </div>
+        {% empty %}
+        <p class="px-5 py-8 text-center text-sm text-slate-500">Nenhum processo cadastrado para esta empresa.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+      <header class="border-b border-slate-200 px-5 py-3"><h2 class="font-semibold">Contatos</h2></header>
+      <ul class="divide-y divide-slate-100">
+        {% for contato in contatos %}
+        <li class="px-5 py-3 text-sm">
+          <p class="font-medium">{{ contato.nome }} {% if contato.principal %}<span class="ml-1 rounded bg-emerald-50 px-1.5 py-0.5 text-xs text-emerald-700">principal</span>{% endif %}</p>
+          <p class="text-xs text-slate-500">{{ contato.cargo }} &middot; {{ contato.email }} &middot; {{ contato.telefone }}</p>
+        </li>
+        {% empty %}
+        <li class="px-5 py-6 text-center text-sm text-slate-500">Nenhum contato cadastrado.</li>
+        {% endfor %}
+      </ul>
+      <form method="post" class="space-y-3 border-t border-slate-200 px-5 py-4">
+        {% csrf_token %}
+        {% include "partials/form_grid.html" with form=form_contato %}
+        <button class="rounded-md bg-slate-800 px-3 py-2 text-sm text-white hover:bg-slate-700">Adicionar contato</button>
+      </form>
+    </div>
+  </section>
+
+  <aside class="space-y-6">
+    <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200 text-sm">
+      <h2 class="mb-3 font-semibold">Dados</h2>
+      <dl class="space-y-2">
+        <div><dt class="text-xs uppercase text-slate-500">Situacao</dt><dd>{{ empresa.get_situacao_display }}</dd></div>
+        <div><dt class="text-xs uppercase text-slate-500">Atividade</dt><dd>{{ empresa.atividade|default:"-" }}</dd></div>
+        <div><dt class="text-xs uppercase text-slate-500">Endereco</dt><dd>{{ empresa.logradouro }} {{ empresa.numero }} {{ empresa.bairro }}<br>{{ empresa.cidade }}{% if empresa.uf %}/{{ empresa.uf }}{% endif %} {{ empresa.cep }}</dd></div>
+        <div><dt class="text-xs uppercase text-slate-500">Contato</dt><dd>{{ empresa.telefone }} {{ empresa.email }}</dd></div>
+        <div><dt class="text-xs uppercase text-slate-500">Responsavel</dt><dd>{{ empresa.responsavel|default:"-" }}</dd></div>
+        <div><dt class="text-xs uppercase text-slate-500">Inicio do contrato</dt><dd>{{ empresa.inicio_contrato|date:"d/m/Y"|default:"-" }}</dd></div>
+      </dl>
+    </div>
+    {% if empresa.observacoes %}
+    <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200 text-sm">
+      <h2 class="mb-2 font-semibold">Observacoes</h2>
+      <p class="whitespace-pre-line text-slate-600">{{ empresa.observacoes }}</p>
+    </div>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

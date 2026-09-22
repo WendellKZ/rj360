@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block titulo %}{% if object %}Editar processo{% else %}Novo processo{% endif %}{% endblock %}
+{% block conteudo %}
+<div class="mx-auto max-w-5xl rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+  <h1 class="mb-1 text-xl font-semibold">{% if object %}Editar processo{% else %}Novo processo de RJ{% endif %}</h1>
+  <p class="mb-5 text-sm text-slate-500">Ao informar as datas dos marcos, os prazos legais sao gerados automaticamente.</p>
+  <form method="post" class="space-y-5">
+    {% csrf_token %}
+    {% include "partials/form_grid.html" with form=form %}
+    <div class="flex gap-2">
+      <button class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Salvar</button>
+      <a href="{% url 'processos:lista' %}" class="rounded-md px-4 py-2 text-sm text-slate-600 hover:bg-slate-100">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

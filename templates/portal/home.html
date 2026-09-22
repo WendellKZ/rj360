@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% load rj_extras %}
+{% block titulo %}Meu processo - {{ APP_NOME }}{% endblock %}
+{% block conteudo %}
+<div class="mb-6">
+  <h1 class="text-2xl font-semibold tracking-tight">Olá, {{ user.get_full_name|default:user.username }}</h1>
+  <p class="text-sm text-slate-500">Acompanhamento da recuperacao judicial de {{ empresa }}.</p>
+</div>
+
+{% if processo %}
+<div class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <p class="text-xs uppercase tracking-wide text-slate-500">Processo</p>
+      <p class="text-lg font-semibold tabular-nums">{{ processo.numero_formatado }}</p>
+      <p class="text-sm text-slate-500">{{ processo.comarca }} &middot; {{ processo.vara }}</p>
+    </div>
+    <span class="rounded-full px-3 py-1 text-sm font-medium ring-1 ring-inset {{ processo.cor_fase|badge_cor }}">{{ processo.get_fase_display }}</span>
+  </div>
+  <div class="mt-5 grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
+    <div><p class="text-xs uppercase text-slate-500">Deferimento</p><p class="font-medium">{{ processo.data_deferimento|date:"d/m/Y"|default:"-" }}</p></div>
+    <div><p class="text-xs uppercase text-slate-500">Plano apresentado</p><p class="font-medium">{{ processo.data_plano|date:"d/m/Y"|default:"-" }}</p></div>
+    <div><p class="text-xs uppercase text-slate-500">Assembleia</p><p class="font-medium">{{ processo.data_agc|date:"d/m/Y"|default:"-" }}</p></div>
+    <div><p class="text-xs uppercase text-slate-500">Concessao</p><p class="font-medium">{{ processo.data_concessao|date:"d/m/Y"|default:"-" }}</p></div>
+  </div>
+</div>
+
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+  <section class="lg:col-span-2 rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+    <header class="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+      <h2 class="font-semibold">Ultimas movimentacoes</h2>
+      <a class="text-sm text-emerald-700 hover:underline" href="{% url 'portal:processo' processo.pk %}">ver tudo</a>
+    </header>
+    <ul class="divide-y divide-slate-100">
+      {% for andamento in andamentos %}
+      <li class="px-5 py-3">
+        <div class="flex items-center justify-between gap-3">
+          <p class="font-medium">{{ andamento.titulo }}</p>
+          <span class="shrink-0 text-xs text-slate-500">{{ andamento.data|date:"d/m/Y" }}</span>
+        </div>
+        {% if andamento.descricao %}<p class="mt-1 whitespace-pre-line text-sm text-slate-600">{{ andamento.descricao }}</p>{% endif %}
+      </li>
+      {% empty %}
+      <li class="px-5 py-8 text-center text-sm text-slate-500">Nenhuma movimentacao publicada ainda.</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <aside class="space-y-6">
+    <section class="rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+      <header class="border-b border-slate-200 px-5 py-3"><h2 class="font-semibold">Proximos prazos</h2></header>
+      <ul class="divide-y divide-slate-100">
+        {% for prazo in prazos %}
+        <li class="px-5 py-3 text-sm">
+          <p class="font-medium">{{ prazo.titulo }}</p>
+          <p class="text-xs text-slate-500">{{ prazo.data_fim|date:"d/m/Y" }} &middot; {{ prazo.base_legal|default:"acompanhamento" }}</p>
+        </li>
+        {% empty %}
+        <li class="px-5 py-6 text-center text-sm text-slate-500">Nenhum prazo em aberto.</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+      <header class="border-b border-slate-200 px-5 py-3"><h2 class="font-semibold">Documentos</h2></header>
+      <ul class="divide-y divide-slate-100">
+        {% for documento in documentos %}
+        <li class="px-5 py-2.5 text-sm">
+          <a class="font-medium hover:underline" href="{{ documento.arquivo.url }}" target="_blank" rel="noopener">{{ documento.titulo }}</a>
+          <p class="text-xs text-slate-500">{{ documento.get_categoria_display }}</p>
+        </li>
+        {% empty %}
+        <li class="px-5 py-6 text-center text-sm text-slate-500">Nenhum documento disponivel.</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </aside>
+</div>
+{% else %}
+<div class="rounded-xl bg-white p-10 text-center shadow-sm ring-1 ring-slate-200">
+  <p class="text-slate-600">Ainda nao ha processo cadastrado para a sua empresa.</p>
+  <p class="mt-1 text-sm text-slate-500">Assim que o processo for registrado, o acompanhamento aparece aqui.</p>
+</div>
+{% endif %}
+{% endblock %}

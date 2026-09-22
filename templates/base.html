@@ -1,0 +1,50 @@
+{% load static %}<!DOCTYPE html>
+<html lang="pt-br" class="h-full">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}{{ APP_NOME }}{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.4/dist/htmx.min.js"></script>
+  <style>[x-cloak]{display:none}</style>
+</head>
+<body class="h-full bg-slate-50 text-slate-800 antialiased">
+{% if user.is_authenticated %}
+<header class="bg-slate-900 text-slate-100">
+  <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
+    <a href="{% url 'core:home' %}" class="flex items-center gap-2">
+      <span class="rounded bg-emerald-500 px-2 py-1 text-sm font-bold text-slate-900">RJ</span>
+      <span class="text-lg font-semibold tracking-tight">{{ APP_NOME }}</span>
+    </a>
+    <nav class="hidden gap-1 text-sm md:flex">
+      {% if user.is_interno %}
+        <a class="rounded px-3 py-2 hover:bg-slate-800" href="{% url 'core:dashboard' %}">Painel</a>
+        <a class="rounded px-3 py-2 hover:bg-slate-800" href="{% url 'empresas:lista' %}">Empresas</a>
+        <a class="rounded px-3 py-2 hover:bg-slate-800" href="{% url 'processos:lista' %}">Processos</a>
+        <a class="rounded px-3 py-2 hover:bg-slate-800" href="{% url 'processos:agenda' %}">Prazos</a>
+        <a class="rounded px-3 py-2 hover:bg-slate-800" href="{% url 'crm:funil' %}">Prospeccao</a>
+      {% else %}
+        <a class="rounded px-3 py-2 hover:bg-slate-800" href="{% url 'portal:home' %}">Meu processo</a>
+      {% endif %}
+    </nav>
+    <div class="flex items-center gap-3 text-sm">
+      <span class="hidden text-slate-300 sm:inline">{{ user.get_full_name|default:user.username }}</span>
+      {% if user.is_staff %}<a class="text-slate-300 hover:text-white" href="/admin/">Admin</a>{% endif %}
+      <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}
+        <button class="rounded bg-slate-800 px-3 py-1.5 hover:bg-slate-700">Sair</button>
+      </form>
+    </div>
+  </div>
+</header>
+{% endif %}
+
+<main class="mx-auto max-w-7xl px-4 py-6">
+  {% include "partials/messages.html" %}
+  {% block conteudo %}{% endblock %}
+</main>
+
+<footer class="mx-auto max-w-7xl px-4 py-8 text-xs text-slate-400">
+  {{ APP_NOME }} &middot; {{ APP_DESCRICAO }}
+</footer>
+</body>
+</html>

@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% load rj_extras %}
+{% block titulo %}{{ processo.numero_formatado }} - {{ APP_NOME }}{% endblock %}
+{% block conteudo %}
+<div class="mb-5 flex flex-wrap items-start justify-between gap-3">
+  <div>
+    <p class="text-xs uppercase tracking-wide text-slate-500">Recuperacao judicial</p>
+    <h1 class="text-2xl font-semibold tabular-nums tracking-tight">{{ processo.numero_formatado }}</h1>
+    <p class="text-sm text-slate-500">
+      <a class="hover:underline" href="{{ processo.empresa.get_absolute_url }}">{{ processo.empresa }}</a>
+      &middot; {{ processo.comarca }} &middot; {{ processo.vara }}
+    </p>
+  </div>
+  <div class="flex flex-wrap items-center gap-2 text-sm">
+    <span class="rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset {{ processo.cor_fase|badge_cor }}">{{ processo.get_fase_display }}</span>
+    <a href="{% url 'processos:editar' processo.pk %}" class="rounded-md bg-white px-3 py-2 font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50">Editar</a>
+    <form method="post" action="{% url 'processos:prazos_gerar' processo.pk %}">{% csrf_token %}
+      <button class="rounded-md bg-slate-800 px-3 py-2 font-medium text-white hover:bg-slate-700">Gerar prazos legais</button>
+    </form>
+  </div>
+</div>
+
+<div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+  <div class="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+    <p class="text-xs uppercase tracking-wide text-slate-500">Deferimento (art. 52)</p>
+    <p class="mt-1 text-lg font-semibold">{{ processo.data_deferimento|date:"d/m/Y"|default:"-" }}</p>
+  </div>
+  <div class="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+    <p class="text-xs uppercase tracking-wide text-slate-500">Stay period</p>
+    <p class="mt-1 text-lg font-semibold">{{ processo.stay_period_fim|date:"d/m/Y"|default:"-" }}</p>
+    {% if processo.stay_dias_restantes is not None %}
+      <p class="text-xs {% if processo.stay_dias_restantes < 30 %}text-rose-600{% else %}text-slate-500{% endif %}">{{ processo.stay_dias_restantes }} dias restantes</p>
+    {% endif %}
+  </div>
+  <div class="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+    <p class="text-xs uppercase tracking-wide text-slate-500">Divida sujeita a RJ</p>
+    <p class="mt-1 text-lg font-semibold">{{ processo.valor_divida|moeda }}</p>
+    <p class="text-xs text-slate-500">{{ processo.total_credores }} credor(es)</p>
+  </div>
+  <div class="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+    <p class="text-xs uppercase tracking-wide text-slate-500">Administrador judicial</p>
+    <p class="mt-1 truncate text-sm font-medium">{{ processo.administrador_judicial|default:"-" }}</p>
+    <p class="truncate text-xs text-slate-500">{{ processo.aj_email }}</p>
+  </div>
+</div>
+
+<section class="mt-6 rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+  <header class="border-b border-slate-200 px-5 py-3"><h2 class="font-semibold">Marcos do processo</h2></header>
+  <ol class="grid grid-cols-2 gap-4 px-5 py-4 text-sm md:grid-cols-4 lg:grid-cols-7">
+    <li><p class="text-xs uppercase text-slate-500">Distribuicao</p><p class="font-medium">{{ processo.data_distribuicao|date:"d/m/Y"|default:"-" }}</p></li>
+    <li><p class="text-xs uppercase text-slate-500">Deferimento</p><p class="font-medium">{{ processo.data_deferimento|date:"d/m/Y"|default:"-" }}</p></li>
+    <li><p class="text-xs uppercase text-slate-500">Edital art. 52</p><p class="font-medium">{{ processo.data_edital_52|date:"d/m/Y"|default:"-" }}</p></li>
+    <li><p class="text-xs uppercase text-slate-500">Plano</p><p class="font-medium">{{ processo.data_plano|date:"d/m/Y"|default:"-" }}</p></li>
+    <li><p class="text-xs uppercase text-slate-500">Aviso art. 53</p><p class="font-medium">{{ processo.data_edital_53|date:"d/m/Y"|default:"-" }}</p></li>
+    <li><p class="text-xs uppercase text-slate-500">AGC</p><p class="font-medium">{{ processo.data_agc|date:"d/m/Y"|default:"-" }}</p></li>
+    <li><p class="text-xs uppercase text-slate-500">Concessao</p><p class="font-medium">{{ processo.data_concessao|date:"d/m/Y"|default:"-" }}</p></li>
+  </ol>
+</section>
+
+<section class="mt-6 rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+  <header class="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+    <h2 class="font-semibold">Prazos</h2>
+  </header>
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-slate-200">
+      <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+        <tr><th class="px-5 py-3">Prazo</th><th class="px-5 py-3">Inicio</th><th class="px-5 py-3">Vencimento</th>
+            <th class="px-5 py-3">Responsavel</th><th class="px-5 py-3">Status</th><th></th></tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for prazo in prazos %}{% include "processos/partials/linha_prazo.html" with prazo=prazo %}{% empty %}
+        <tr><td colspan="6" class="px-5 py-8 text-center text-sm text-slate-500">Nenhum prazo cadastrado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <details class="border-t border-slate-200 px-5 py-4">
+    <summary class="cursor-pointer text-sm font-medium text-emerald-700">Adicionar prazo manual</summary>
+    <form method="post" action="{% url 'processos:prazo_novo' processo.pk %}" class="mt-4 space-y-3">
+      {% csrf_token %}
+      {% include "partials/form_grid.html" with form=form_prazo %}
+      <button class="rounded-md bg-slate-800 px-3 py-2 text-sm text-white hover:bg-slate-700">Salvar prazo</button>
+    </form>
+  </details>
+</section>
+
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+  <section class="lg:col-span-2 rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+    <header class="border-b border-slate-200 px-5 py-3"><h2 class="font-semibold">Linha do tempo</h2></header>
+    <ul class="divide-y divide-slate-100">
+      {% for andamento in andamentos %}
+      <li class="px-5 py-3">
+        <div class="flex items-center justify-between gap-3">
+          <p class="font-medium">{{ andamento.titulo }}</p>
+          <span class="shrink-0 text-xs text-slate-500">{{ andamento.data|date:"d/m/Y" }}</span>
+        </div>
+        <p class="text-xs text-slate-500">
+          {{ andamento.get_tipo_display }} &middot; {{ andamento.get_fonte_display }}
+          {% if not andamento.visivel_cliente %}&middot; <span class="text-amber-700">interno</span>{% endif %}
+        </p>
+        {% if andamento.descricao %}<p class="mt-1 whitespace-pre-line text-sm text-slate-600">{{ andamento.descricao }}</p>{% endif %}
+      </li>
+      {% empty %}
+      <li class="px-5 py-8 text-center text-sm text-slate-500">Nenhum andamento registrado.</li>
+      {% endfor %}
+    </ul>
+    <details class="border-t border-slate-200 px-5 py-4" {% if form_andamento.errors %}open{% endif %}>
+      <summary class="cursor-pointer text-sm font-medium text-emerald-700">Registrar andamento</summary>
+      <form method="post" action="{% url 'processos:andamento_novo' processo.pk %}" class="mt-4 space-y-3">
+        {% csrf_token %}
+        {% include "partials/form_grid.html" with form=form_andamento %}
+        <button class="rounded-md bg-slate-800 px-3 py-2 text-sm text-white hover:bg-slate-700">Salvar andamento</button>
+      </form>
+    </details>
+  </section>
+
+  <aside class="space-y-6">
+    <section class="rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+      <header class="border-b border-slate-200 px-5 py-3"><h2 class="font-semibold">Quadro de credores</h2></header>
+      <table class="min-w-full text-sm">
+        <tbody class="divide-y divide-slate-100">
+          {% for linha in resumo_credores %}
+          <tr>
+            <td class="px-5 py-2">{{ linha.rotulo }}</td>
+            <td class="px-5 py-2 text-right tabular-nums">{{ linha.quantidade }}</td>
+            <td class="px-5 py-2 text-right tabular-nums text-slate-600">{{ linha.total_arrolado|moeda }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <details class="border-t border-slate-200 px-5 py-4">
+        <summary class="cursor-pointer text-sm font-medium text-emerald-700">Adicionar credor</summary>
+        <form method="post" action="{% url 'processos:credor_novo' processo.pk %}" class="mt-4 space-y-3">
+          {% csrf_token %}
+          {% include "partials/form_grid.html" with form=form_credor %}
+          <button class="rounded-md bg-slate-800 px-3 py-2 text-sm text-white hover:bg-slate-700">Salvar credor</button>
+        </form>
+      </details>
+    </section>
+
+    <section class="rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+      <header class="border-b border-slate-200 px-5 py-3"><h2 class="font-semibold">Documentos</h2></header>
+      <ul class="divide-y divide-slate-100">
+        {% for documento in documentos %}
+        <li class="px-5 py-2.5 text-sm">
+          <a class="font-medium hover:underline" href="{{ documento.arquivo.url }}" target="_blank" rel="noopener">{{ documento.titulo }}</a>
+          <p class="text-xs text-slate-500">{{ documento.get_categoria_display }} &middot; {{ documento.data_referencia|date:"d/m/Y"|default:"sem data" }}</p>
+        </li>
+        {% empty %}
+        <li class="px-5 py-6 text-center text-sm text-slate-500">Nenhum documento anexado.</li>
+        {% endfor %}
+      </ul>
+      <details class="border-t border-slate-200 px-5 py-4">
+        <summary class="cursor-pointer text-sm font-medium text-emerald-700">Anexar documento</summary>
+        <form method="post" action="{% url 'processos:documento_novo' processo.pk %}" enctype="multipart/form-data" class="mt-4 space-y-3">
+          {% csrf_token %}
+          {% include "partials/form_grid.html" with form=form_documento %}
+          <button class="rounded-md bg-slate-800 px-3 py-2 text-sm text-white hover:bg-slate-700">Enviar</button>
+        </form>
+      </details>
+    </section>
+
+    <section class="rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+      <header class="border-b border-slate-200 px-5 py-3"><h2 class="font-semibold">Cumprimento do plano</h2></header>
+      <ul class="divide-y divide-slate-100">
+        {% for parcela in parcelas %}
+        <li class="flex items-center justify-between px-5 py-2.5 text-sm">
+          <div>
+            <p class="font-medium">{{ parcela.descricao }}</p>
+            <p class="text-xs text-slate-500">{{ parcela.vencimento|date:"d/m/Y" }} &middot; {{ parcela.get_status_display }}</p>
+          </div>
+          <span class="tabular-nums">{{ parcela.valor_previsto|moeda }}</span>
+        </li>
+        {% empty %}
+        <li class="px-5 py-6 text-center text-sm text-slate-500">Nenhuma parcela cadastrada.</li>
+        {% endfor %}
+      </ul>
+      <details class="border-t border-slate-200 px-5 py-4">
+        <summary class="cursor-pointer text-sm font-medium text-emerald-700">Adicionar parcela</summary>
+        <form method="post" action="{% url 'processos:parcela_nova' processo.pk %}" class="mt-4 space-y-3">
+          {% csrf_token %}
+          {% include "partials/form_grid.html" with form=form_parcela %}
+          <button class="rounded-md bg-slate-800 px-3 py-2 text-sm text-white hover:bg-slate-700">Salvar parcela</button>
+        </form>
+      </details>
+    </section>
+  </aside>
+</div>
+{% endblock %}

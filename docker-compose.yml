@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: rj360_db
+    environment:
+      POSTGRES_DB: rj360
+      POSTGRES_USER: rj360
+      POSTGRES_PASSWORD: rj360
+    ports:
+      - "5432:5432"
+    volumes:
+      - rj360_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rj360"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  rj360_pgdata:

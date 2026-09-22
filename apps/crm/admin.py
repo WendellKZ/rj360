@@ -12,10 +12,10 @@ class AtividadeInline(admin.TabularInline):
 @admin.register(Lead)
 class LeadAdmin(admin.ModelAdmin):
     list_display = (
-        "razao_social", "cidade", "uf", "situacao_juridica", "estagio",
+        "razao_social", "cidade", "uf", "situacao_juridica", "urgencia", "estagio",
         "valor_estimado", "responsavel", "proximo_contato",
     )
-    list_filter = ("estagio", "situacao_juridica", "origem", "uf", "porte")
+    list_filter = ("estagio", "urgencia", "situacao_juridica", "origem", "uf", "porte")
     search_fields = ("razao_social", "nome_fantasia", "cnpj", "contato_nome")
     autocomplete_fields = ("responsavel", "empresa")
     inlines = [AtividadeInline]

@@ -1,85 +1,142 @@
 {% extends "base.html" %}
 {% load rj_extras %}
 {% block titulo %}Meu processo - {{ APP_NOME }}{% endblock %}
-{% block conteudo %}
-<div class="mb-6">
-  <h1 class="text-2xl font-semibold tracking-tight">Olá, {{ user.get_full_name|default:user.username }}</h1>
-  <p class="text-sm text-slate-500">Acompanhamento da recuperacao judicial de {{ empresa }}.</p>
+{% block conteudo_cliente %}
+<div class="cabecalho">
+  <div>
+    <div class="sobretitulo">Portal do cliente</div>
+    <h1>Olá, {{ user.get_full_name|default:user.username }}</h1>
+    <p class="subtitulo">Acompanhamento da recuperação judicial de {{ empresa }}.</p>
+  </div>
 </div>
 
 {% if processo %}
-<div class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-  <div class="flex flex-wrap items-center justify-between gap-3">
-    <div>
-      <p class="text-xs uppercase tracking-wide text-slate-500">Processo</p>
-      <p class="text-lg font-semibold tabular-nums">{{ processo.numero_formatado }}</p>
-      <p class="text-sm text-slate-500">{{ processo.comarca }} &middot; {{ processo.vara }}</p>
+<div class="faixa-passo">
+  <div class="conteudo-passo">
+    <div class="rotulo">Próximo passo</div>
+    <div class="texto">
+      {% if documento_pendente %}
+        Enviar “{{ documento_pendente.titulo }}”{% if documento_pendente.prazo %} até {{ documento_pendente.prazo|date:"d/m/Y" }}{% endif %}
+      {% elif proximo_prazo %}
+        {{ proximo_prazo.titulo }} — até {{ proximo_prazo.data_fim|date:"d/m/Y" }}
+      {% else %}
+        Nenhuma pendência no momento. Seguimos acompanhando o processo.
+      {% endif %}
     </div>
-    <span class="rounded-full px-3 py-1 text-sm font-medium ring-1 ring-inset {{ processo.cor_fase|badge_cor }}">{{ processo.get_fase_display }}</span>
   </div>
-  <div class="mt-5 grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
-    <div><p class="text-xs uppercase text-slate-500">Deferimento</p><p class="font-medium">{{ processo.data_deferimento|date:"d/m/Y"|default:"-" }}</p></div>
-    <div><p class="text-xs uppercase text-slate-500">Plano apresentado</p><p class="font-medium">{{ processo.data_plano|date:"d/m/Y"|default:"-" }}</p></div>
-    <div><p class="text-xs uppercase text-slate-500">Assembleia</p><p class="font-medium">{{ processo.data_agc|date:"d/m/Y"|default:"-" }}</p></div>
-    <div><p class="text-xs uppercase text-slate-500">Concessao</p><p class="font-medium">{{ processo.data_concessao|date:"d/m/Y"|default:"-" }}</p></div>
+  {% if documento_pendente %}
+  <a class="btn btn-primario" href="{% url 'portal:documentos' %}">Enviar agora</a>
+  {% else %}
+  <a class="btn btn-primario" href="{% url 'portal:processo' processo.pk %}">Ver o processo</a>
+  {% endif %}
+</div>
+
+<section class="cartao">
+  <div class="cartao-corpo">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
+      <h2 style="font-size:17px">Sua jornada</h2>
+      <div class="texto-fraco">Etapa {{ etapa_atual }} de 6</div>
+    </div>
+    <div class="trilha">
+      {% for etapa in trilha %}
+      <div class="etapa {% if etapa.concluida %}concluida{% endif %} {% if etapa.atual %}atual{% endif %}">
+        <div class="marca"></div>
+        <div class="nome">{{ etapa.numero }}. {{ etapa.nome }}</div>
+        {% if etapa.data %}<div class="texto-fraco num" style="font-size:10.5px">{{ etapa.data|date:"d/m/Y" }}</div>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<div class="kpis" style="margin-top:18px">
+  <div class="kpi">
+    <div class="rotulo">Situação atual</div>
+    <div class="valor" style="font-size:18px">{{ processo.get_fase_display }}</div>
+    <div class="sub num">{{ processo.numero_formatado }}</div>
+  </div>
+  <div class="kpi">
+    <div class="rotulo">Dívida em recuperação</div>
+    <div class="valor num" style="font-size:24px">{{ processo.valor_divida|moeda }}</div>
+    <div class="sub">{{ processo.total_credores }} credor(es)</div>
+  </div>
+  <div class="kpi">
+    <div class="rotulo">Vara</div>
+    <div class="sub" style="font-size:13px;color:var(--tinta);margin-top:6px">{{ processo.vara|default:"—" }}</div>
+    <div class="sub">{{ processo.comarca }}</div>
   </div>
 </div>
 
-<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-  <section class="lg:col-span-2 rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
-    <header class="flex items-center justify-between border-b border-slate-200 px-5 py-3">
-      <h2 class="font-semibold">Ultimas movimentacoes</h2>
-      <a class="text-sm text-emerald-700 hover:underline" href="{% url 'portal:processo' processo.pk %}">ver tudo</a>
+<div class="grade grade-2-1" style="margin-top:18px">
+  <section class="cartao">
+    <header class="cartao-cab">
+      <h2>Últimas movimentações</h2>
+      <a href="{% url 'portal:processo' processo.pk %}">ver tudo</a>
     </header>
-    <ul class="divide-y divide-slate-100">
-      {% for andamento in andamentos %}
-      <li class="px-5 py-3">
-        <div class="flex items-center justify-between gap-3">
-          <p class="font-medium">{{ andamento.titulo }}</p>
-          <span class="shrink-0 text-xs text-slate-500">{{ andamento.data|date:"d/m/Y" }}</span>
-        </div>
-        {% if andamento.descricao %}<p class="mt-1 whitespace-pre-line text-sm text-slate-600">{{ andamento.descricao }}</p>{% endif %}
-      </li>
-      {% empty %}
-      <li class="px-5 py-8 text-center text-sm text-slate-500">Nenhuma movimentacao publicada ainda.</li>
-      {% endfor %}
-    </ul>
-  </section>
-
-  <aside class="space-y-6">
-    <section class="rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
-      <header class="border-b border-slate-200 px-5 py-3"><h2 class="font-semibold">Proximos prazos</h2></header>
-      <ul class="divide-y divide-slate-100">
-        {% for prazo in prazos %}
-        <li class="px-5 py-3 text-sm">
-          <p class="font-medium">{{ prazo.titulo }}</p>
-          <p class="text-xs text-slate-500">{{ prazo.data_fim|date:"d/m/Y" }} &middot; {{ prazo.base_legal|default:"acompanhamento" }}</p>
+    <div class="cartao-corpo">
+      <ul class="feed">
+        {% for andamento in andamentos %}
+        <li>
+          <span class="ponto"></span>
+          <div>
+            <div class="titulo">{{ andamento.titulo }}</div>
+            <div class="sub num">{{ andamento.data|date:"d/m/Y" }}</div>
+            {% if andamento.descricao %}<div class="texto-suave" style="margin-top:4px;white-space:pre-line">{{ andamento.descricao }}</div>{% endif %}
+          </div>
         </li>
         {% empty %}
-        <li class="px-5 py-6 text-center text-sm text-slate-500">Nenhum prazo em aberto.</li>
+        <li style="display:block"><div class="vazio">Nenhuma movimentação publicada ainda.</div></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </section>
+
+  <aside>
+    <section class="cartao">
+      <header class="cartao-cab"><h2>Próximos prazos</h2></header>
+      <ul class="lista">
+        {% for prazo in prazos %}
+        <li>
+          <div style="font-weight:500">{{ prazo.titulo }}</div>
+          <div class="texto-fraco num">{{ prazo.data_fim|date:"d/m/Y" }} · {{ prazo.base_legal|default:"acompanhamento" }}</div>
+        </li>
+        {% empty %}
+        <li class="vazio">Nenhum prazo em aberto.</li>
         {% endfor %}
       </ul>
     </section>
 
-    <section class="rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
-      <header class="border-b border-slate-200 px-5 py-3"><h2 class="font-semibold">Documentos</h2></header>
-      <ul class="divide-y divide-slate-100">
+    {% if proxima_reuniao %}
+    <section class="cartao">
+      <header class="cartao-cab"><h2>Próxima reunião</h2></header>
+      <div class="cartao-corpo">
+        <div style="font-weight:500">{{ proxima_reuniao.titulo }}</div>
+        <div class="texto-fraco num">{{ proxima_reuniao.quando|date:"d/m/Y \à\s H:i" }}</div>
+        {% if proxima_reuniao.local %}<div class="texto-suave">{{ proxima_reuniao.local }}</div>{% endif %}
+        <a class="btn btn-p" style="margin-top:10px" href="{% url 'portal:reunioes' %}">ver reuniões</a>
+      </div>
+    </section>
+    {% endif %}
+
+    <section class="cartao">
+      <header class="cartao-cab"><h2>Documentos</h2></header>
+      <ul class="lista">
         {% for documento in documentos %}
-        <li class="px-5 py-2.5 text-sm">
-          <a class="font-medium hover:underline" href="{{ documento.arquivo.url }}" target="_blank" rel="noopener">{{ documento.titulo }}</a>
-          <p class="text-xs text-slate-500">{{ documento.get_categoria_display }}</p>
+        <li>
+          <a href="{{ documento.arquivo.url }}" target="_blank" rel="noopener">{{ documento.titulo }}</a>
+          <div class="texto-fraco">{{ documento.get_categoria_display }}</div>
         </li>
         {% empty %}
-        <li class="px-5 py-6 text-center text-sm text-slate-500">Nenhum documento disponivel.</li>
+        <li class="vazio">Nenhum documento disponível.</li>
         {% endfor %}
       </ul>
     </section>
   </aside>
 </div>
 {% else %}
-<div class="rounded-xl bg-white p-10 text-center shadow-sm ring-1 ring-slate-200">
-  <p class="text-slate-600">Ainda nao ha processo cadastrado para a sua empresa.</p>
-  <p class="mt-1 text-sm text-slate-500">Assim que o processo for registrado, o acompanhamento aparece aqui.</p>
-</div>
+<div class="cartao"><div class="vazio">
+  <p>Ainda não há processo cadastrado para a sua empresa.</p>
+  <p class="texto-fraco">Assim que o processo for registrado, o acompanhamento aparece aqui.</p>
+</div></div>
 {% endif %}
 {% endblock %}

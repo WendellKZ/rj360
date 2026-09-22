@@ -30,6 +30,16 @@ simples.
 - Andamentos e documentos marcados como visiveis ao cliente.
 - Proximos prazos e situacao atual do processo.
 
+**Importacao do quadro de credores**
+
+- Planilha .xlsx ou .csv, com cabecalho em portugues e valores no formato
+  brasileiro (`1.234,56`).
+- Previa na tela antes de gravar: linhas validas de um lado, linhas com
+  problema e o motivo do outro.
+- Credor ja cadastrado (mesmo CPF/CNPJ, ou mesmo nome quando nao ha documento)
+  pode ser atualizado, mantido ou duplicado — voce escolhe no envio.
+- Planilha modelo para download, com instrucoes na segunda aba.
+
 **Integracao com o tribunal (DataJud/CNJ)**
 
 - Importacao das movimentacoes pela API publica do CNJ, por processo ou em lote.
@@ -121,6 +131,23 @@ python manage.py runserver
 ```bash
 python manage.py test
 ```
+
+## Importacao do quadro de credores
+
+Na pagina do processo, em Quadro de credores, use **Importar planilha de
+credores**. Baixe a planilha modelo na propria tela.
+
+Colunas obrigatorias: **Credor**, **Classe** e **Valor**. Opcionais: CPF/CNPJ,
+Valor habilitado, Situacao, Sujeito a RJ, Observacoes. A ordem nao importa (a
+leitura e pelo cabecalho) e colunas a mais sao ignoradas.
+
+A classe aceita `I`, `II`, `III`, `IV`, o numero (`1` a `4`) ou o nome
+(trabalhista, garantia real, quirografario, ME/EPP). Valor aceita
+`1.234,56`, `1234.56` ou `R$ 1.234,56` — mas um texto sem numero e recusado
+com o numero da linha, em vez de virar zero em silencio.
+
+Nada e gravado no envio: o arquivo fica guardado, a previa mostra o que sera
+importado e so a confirmacao grava. O historico das importacoes fica no admin.
 
 ## Integracao com o DataJud (CNJ)
 

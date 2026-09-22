@@ -171,6 +171,132 @@ class Command(BaseCommand):
                     autor=analista,
                 )
 
+        self._relacionamento(processo, analista, cliente, hoje)
+        self._diagnosticos(hoje)
+
         self.stdout.write(self.style.SUCCESS("Dados de demonstracao criados."))
         self.stdout.write(f"  usuario interno: analista / {senha}")
         self.stdout.write(f"  usuario cliente: cliente / {senha}")
+        self.stdout.write("")
+        self.stdout.write("  painel interno .......... http://localhost:8000/")
+        self.stdout.write("  portal do cliente ....... http://localhost:8000/portal/")
+        self.stdout.write("  site publico ............ http://localhost:8000/ (deslogado)")
+        self.stdout.write("  diagnostico gratuito .... http://localhost:8000/diagnostico/")
+
+    # ------------------------------------------------------------------ extras
+
+    def _relacionamento(self, processo, analista, cliente, hoje):
+        """Documentos pedidos, reunioes, conversa e negociacao com credores."""
+        from django.utils import timezone
+
+        from apps.processos.models import EstagioNegociacao
+        from apps.relacionamento.models import (
+            DocumentoSolicitado, Mensagem, Reuniao, StatusDocumento, StatusReuniao,
+        )
+
+        if not processo.solicitacoes.exists():
+            DocumentoSolicitado.objects.create(
+                processo=processo, titulo="DAS dos ultimos 3 meses",
+                motivo="necessario para o pedido de parcelamento na Receita",
+                prazo=hoje + timedelta(days=2), solicitado_por=analista,
+            )
+            DocumentoSolicitado.objects.create(
+                processo=processo, titulo="Declaracao de faturamento do mes",
+                motivo="atualizar o fluxo de caixa do plano",
+                prazo=hoje + timedelta(days=7), solicitado_por=analista,
+            )
+            DocumentoSolicitado.objects.create(
+                processo=processo, titulo="Contrato social",
+                motivo="conferencia cadastral", status=StatusDocumento.VALIDADO,
+                enviado_em=timezone.now() - timedelta(days=9), solicitado_por=analista,
+            )
+
+        if not processo.reunioes.exists():
+            Reuniao.objects.create(
+                processo=processo, titulo="Alinhamento do plano com a advogada",
+                quando=timezone.now() + timedelta(days=4, hours=2),
+                local="Chamada de video (link enviado por e-mail)",
+                participantes="Ana Consultora, Dra. Camila, Carlos Diretor",
+                pauta="Revisar a proposta aos quirografarios e o cronograma da AGC.",
+            )
+            Reuniao.objects.create(
+                processo=processo, titulo="Kickoff do acompanhamento",
+                status=StatusReuniao.REALIZADA, quando=timezone.now() - timedelta(days=21),
+                participantes="Ana Consultora, Carlos Diretor",
+                ata="Definimos a ordem de negociacao: bancos primeiro, fornecedores depois. "
+                    "A empresa envia os DAS ate o fim da semana.",
+            )
+
+        if not processo.mensagens.exists():
+            Mensagem.objects.create(
+                processo=processo, autor=analista,
+                texto="Oi, Carlos! A proposta ao Banco Exemplo foi aceita — 28% de desconto em 48 meses.",
+            )
+            Mensagem.objects.create(
+                processo=processo, autor=cliente,
+                texto="Otima noticia, Ana! Vou separar os DAS ainda amanha.",
+            )
+            Mensagem.objects.create(
+                processo=processo, autor=analista,
+                texto="Perfeito. Se mandar ate quinta, ja entra na reuniao com tudo em maos.",
+            )
+
+        negociacoes = {
+            "Banco Exemplo S.A.": (EstagioNegociacao.ACORDO, Decimal("0.72"), [
+                ("Acordo assinado — 28% de desconto em 48 meses", 3),
+                ("Proposta aceita pelo banco", 12),
+                ("Raio-X e analise do contrato", 30),
+            ]),
+            "Fornecedora Alfa Ltda": (EstagioNegociacao.PROPOSTA, Decimal("0.74"), [
+                ("Proposta enviada — 26% de desconto, 18x", 1),
+                ("Call com o gerente de compras", 8),
+            ]),
+            "Transportes Beta ME": (EstagioNegociacao.EM_NEGOCIACAO, None, [
+                ("Dossie de negociacao montado", 5),
+            ]),
+        }
+        for credor in processo.credores.all():
+            dados = negociacoes.get(credor.nome)
+            if not dados or credor.eventos.exists():
+                continue
+            estagio, fator, eventos = dados
+            credor.estagio_negociacao = estagio
+            if fator is not None:
+                credor.valor_negociado = (credor.valor_arrolado * fator).quantize(Decimal("0.01"))
+            credor.save()
+            for descricao, dias in eventos:
+                credor.eventos.create(
+                    descricao=descricao, data=hoje - timedelta(days=dias), registrado_por=analista
+                )
+
+    def _diagnosticos(self, hoje):
+        """Tres diagnosticos vindos do site, um deles com o prazo estourado."""
+        from django.utils import timezone
+
+        from apps.publico.models import Diagnostico, Urgencia
+
+        if Diagnostico.objects.exists():
+            return
+
+        modelos = [
+            ("Roberto Alves", "Industria Andrade Ltda", "(19) 98888-1111",
+             "roberto@andrade.com.br", 13, Urgencia.ALTA, 40,
+             ["R$ 300 mil a R$ 500 mil", "R$ 1 milhao a R$ 3 milhoes", "Execucao judicial"]),
+            ("Carla Menezes", "Distribuidora Horizonte", "(19) 97777-2222", "", 9, Urgencia.MEDIA, 60,
+             ["R$ 100 mil a R$ 300 mil", "R$ 300 mil a R$ 1 milhao", "Protesto / Serasa"]),
+            ("Paulo Ferraz", "Clinica Vida", "", "paulo@clinicavida.com.br", 5, Urgencia.BAIXA, 300,
+             ["Ate R$ 100 mil", "Ate R$ 300 mil", "Apertando, mas controlando"]),
+        ]
+        for nome, empresa, telefone, email, pontos, urgencia, minutos, respostas in modelos:
+            chaves = ["faturamento", "divida", "situacao"]
+            diagnostico = Diagnostico.objects.create(
+                nome=nome, empresa=empresa, telefone=telefone, email=email,
+                pontuacao=pontos, urgencia=urgencia, contato_em=timezone.now(),
+                respostas=[
+                    {"chave": chave, "pergunta": "", "resposta": resposta, "pontos": 0}
+                    for chave, resposta in zip(chaves, respostas)
+                ],
+            )
+            Diagnostico.objects.filter(pk=diagnostico.pk).update(
+                criado_em=timezone.now() - timedelta(minutes=minutos)
+            )

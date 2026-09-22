@@ -2,77 +2,82 @@
 {% load rj_extras %}
 {% block titulo %}{{ lead }} - {{ APP_NOME }}{% endblock %}
 {% block conteudo %}
-<div class="mb-5 flex flex-wrap items-start justify-between gap-3">
+<a class="voltar" href="{% url 'crm:funil' %}">← Funil</a>
+
+<div class="cabecalho topo">
   <div>
-    <p class="text-xs uppercase tracking-wide text-slate-500">Lead</p>
-    <h1 class="text-2xl font-semibold tracking-tight">{{ lead }}</h1>
-    <p class="text-sm text-slate-500">{{ lead.razao_social }} &middot; {{ lead.get_situacao_juridica_display }}</p>
+    <div class="sobretitulo">Lead</div>
+    <h1>{{ lead }}</h1>
+    <div class="texto-fraco">{{ lead.razao_social }} · {{ lead.get_situacao_juridica_display }}</div>
+    {% if lead.urgencia != 'NA' %}<span class="etiqueta {{ lead.cor_urgencia|badge_cor }}" style="margin-top:8px;display:inline-block">{{ lead.get_urgencia_display }}</span>{% endif %}
   </div>
-  <div class="flex flex-wrap gap-2 text-sm">
-    <a href="{% url 'crm:editar' lead.pk %}" class="rounded-md bg-white px-3 py-2 font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50">Editar</a>
+  <div class="acoes">
+    <a class="btn" href="{% url 'crm:editar' lead.pk %}">Editar</a>
     {% if not lead.empresa %}
     <form method="post" action="{% url 'crm:converter' lead.pk %}">{% csrf_token %}
-      <button class="rounded-md bg-emerald-600 px-3 py-2 font-medium text-white hover:bg-emerald-700">Converter em cliente</button>
+      <button class="btn btn-primario" type="submit">Converter em cliente</button>
     </form>
     {% else %}
-    <a href="{{ lead.empresa.get_absolute_url }}" class="rounded-md bg-slate-800 px-3 py-2 font-medium text-white hover:bg-slate-700">Ver empresa</a>
+    <a class="btn btn-escuro" href="{{ lead.empresa.get_absolute_url }}">Ver empresa</a>
     {% endif %}
   </div>
 </div>
 
-<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-  <section class="lg:col-span-2 rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
-    <header class="border-b border-slate-200 px-5 py-3"><h2 class="font-semibold">Atividades</h2></header>
-    <ul class="divide-y divide-slate-100">
+<div class="grade grade-2-1">
+  <section class="cartao">
+    <header class="cartao-cab"><h2>Atividades</h2></header>
+    <ul class="linha-tempo">
       {% for atividade in atividades %}
-      <li class="px-5 py-3">
-        <div class="flex items-center justify-between gap-3">
-          <p class="font-medium">{{ atividade.titulo }}</p>
-          <span class="shrink-0 text-xs text-slate-500">{{ atividade.data|date:"d/m/Y" }}</span>
+      <li>
+        <div class="topo">
+          <span class="titulo">{{ atividade.titulo }}</span>
+          <span class="quando num">{{ atividade.data|date:"d/m/Y" }}</span>
         </div>
-        <p class="text-xs text-slate-500">{{ atividade.get_tipo_display }} &middot; {{ atividade.autor|default:"-" }}</p>
-        {% if atividade.descricao %}<p class="mt-1 whitespace-pre-line text-sm text-slate-600">{{ atividade.descricao }}</p>{% endif %}
+        <div class="meta">{{ atividade.get_tipo_display }} · {{ atividade.autor|default:"—" }}</div>
+        {% if atividade.descricao %}<div class="texto">{{ atividade.descricao }}</div>{% endif %}
       </li>
       {% empty %}
-      <li class="px-5 py-8 text-center text-sm text-slate-500">Nenhuma atividade registrada.</li>
+      <li class="vazio">Nenhuma atividade registrada.</li>
       {% endfor %}
     </ul>
-    <form method="post" action="{% url 'crm:atividade_nova' lead.pk %}" class="space-y-3 border-t border-slate-200 px-5 py-4">
-      {% csrf_token %}
-      {% include "partials/form_grid.html" with form=form_atividade %}
-      <button class="rounded-md bg-slate-800 px-3 py-2 text-sm text-white hover:bg-slate-700">Registrar atividade</button>
-    </form>
-  </section>
-
-  <aside class="space-y-6">
-    <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200 text-sm">
-      <h2 class="mb-3 font-semibold">Dados</h2>
-      <dl class="space-y-2">
-        <div><dt class="text-xs uppercase text-slate-500">Contato</dt><dd>{{ lead.contato_nome|default:"-" }} {{ lead.contato_cargo }}</dd></div>
-        <div><dt class="text-xs uppercase text-slate-500">E-mail / telefone</dt><dd>{{ lead.contato_email }} {{ lead.contato_telefone }}</dd></div>
-        <div><dt class="text-xs uppercase text-slate-500">Origem</dt><dd>{{ lead.get_origem_display }}</dd></div>
-        <div><dt class="text-xs uppercase text-slate-500">Setor</dt><dd>{{ lead.setor|default:"-" }}</dd></div>
-        <div><dt class="text-xs uppercase text-slate-500">Valor estimado</dt><dd>{{ lead.valor_estimado|moeda }}</dd></div>
-        <div><dt class="text-xs uppercase text-slate-500">Proximo contato</dt><dd>{{ lead.proximo_contato|date:"d/m/Y"|default:"-" }}</dd></div>
-      </dl>
-    </div>
-
-    <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-      <h2 class="mb-3 text-sm font-semibold">Mover para</h2>
-      <form method="post" action="{% url 'crm:mover' lead.pk %}" class="flex gap-2">
+    <div class="cartao-rodape">
+      <form method="post" action="{% url 'crm:atividade_nova' lead.pk %}">
         {% csrf_token %}
-        <select name="estagio" class="w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
-          {% for valor, rotulo in estagios %}<option value="{{ valor }}" {% if lead.estagio == valor %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}
-        </select>
-        <button class="rounded-md bg-slate-800 px-3 py-2 text-sm text-white hover:bg-slate-700">Ok</button>
+        {% include "partials/form_grid.html" with form=form_atividade %}
+        <div class="form-acoes"><button class="btn" type="submit">Registrar atividade</button></div>
       </form>
     </div>
+  </section>
+
+  <aside>
+    <section class="cartao"><div class="cartao-corpo">
+      <h2 style="font-size:15px;margin-bottom:12px">Dados</h2>
+      <dl class="dl">
+        <div><dt>Contato</dt><dd>{{ lead.contato_nome|default:"—" }} {{ lead.contato_cargo }}</dd></div>
+        <div><dt>E-mail / telefone</dt><dd>{{ lead.contato_email }} {{ lead.contato_telefone }}</dd></div>
+        <div><dt>Origem</dt><dd>{{ lead.get_origem_display }}</dd></div>
+        <div><dt>Setor</dt><dd>{{ lead.setor|default:"—" }}</dd></div>
+        <div><dt>Valor estimado</dt><dd class="num">{{ lead.valor_estimado|moeda }}</dd></div>
+        <div><dt>Próximo contato</dt><dd class="num">{{ lead.proximo_contato|date:"d/m/Y"|default:"—" }}</dd></div>
+      </dl>
+    </div></section>
+
+    <section class="cartao"><div class="cartao-corpo">
+      <h2 style="font-size:15px;margin-bottom:10px">Mover para</h2>
+      <form method="post" action="{% url 'crm:mover' lead.pk %}" style="display:flex;gap:8px">
+        {% csrf_token %}
+        <select name="estagio" style="max-width:none">
+          {% for valor, rotulo in estagios %}<option value="{{ valor }}" {% if lead.estagio == valor %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}
+        </select>
+        <button class="btn" type="submit">Ok</button>
+      </form>
+    </div></section>
 
     {% if lead.observacoes %}
-    <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200 text-sm">
-      <h2 class="mb-2 font-semibold">Observacoes</h2>
-      <p class="whitespace-pre-line text-slate-600">{{ lead.observacoes }}</p>
-    </div>
+    <section class="cartao"><div class="cartao-corpo">
+      <h2 style="font-size:15px;margin-bottom:8px">Observações</h2>
+      <p class="texto-suave" style="white-space:pre-line;margin:0">{{ lead.observacoes }}</p>
+    </div></section>
     {% endif %}
   </aside>
 </div>

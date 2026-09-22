@@ -2,54 +2,54 @@
 {% load rj_extras %}
 {% block titulo %}Processos - {{ APP_NOME }}{% endblock %}
 {% block conteudo %}
-<div class="mb-5 flex flex-wrap items-center justify-between gap-3">
-  <h1 class="text-2xl font-semibold tracking-tight">Processos de RJ</h1>
-  <a href="{% url 'processos:novo' %}" class="rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700">Novo processo</a>
+<div class="cabecalho">
+  <div>
+    <div class="sobretitulo">Painel interno</div>
+    <h1>Processos de recuperação judicial</h1>
+  </div>
+  <a class="btn btn-primario" href="{% url 'processos:novo' %}">Novo processo</a>
 </div>
 
-<form method="get" class="mb-4 flex flex-wrap gap-2">
-  <input name="q" value="{{ q }}" placeholder="Numero CNJ ou empresa"
-         class="w-72 rounded-md border-slate-300 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
-  <select name="fase" class="rounded-md border-slate-300 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
+<form method="get" class="filtros">
+  <input class="busca" type="search" name="q" value="{{ q }}" placeholder="Número CNJ ou empresa">
+  <select name="fase">
     <option value="">Todas as fases</option>
     {% for valor, rotulo in fases %}
       <option value="{{ valor }}" {% if fase_atual == valor %}selected{% endif %}>{{ rotulo }}</option>
     {% endfor %}
   </select>
-  <button class="rounded-md bg-slate-800 px-3 py-2 text-sm text-white hover:bg-slate-700">Filtrar</button>
-  {% if q or fase_atual %}<a href="{% url 'processos:lista' %}" class="rounded-md px-3 py-2 text-sm text-slate-600 hover:bg-slate-100">limpar</a>{% endif %}
+  <button class="btn" type="submit">Filtrar</button>
+  {% if q or fase_atual %}<a class="btn-texto" href="{% url 'processos:lista' %}">limpar</a>{% endif %}
+  <div class="espaco"></div>
+  <div class="resumo">{{ paginator.count|default:processos|length }} processo(s)</div>
 </form>
 
-<div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
-  <table class="min-w-full divide-y divide-slate-200 text-sm">
-    <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-      <tr>
-        <th class="px-5 py-3">Processo</th><th class="px-5 py-3">Empresa</th>
-        <th class="px-5 py-3">Fase</th><th class="px-5 py-3">Deferimento</th>
-        <th class="px-5 py-3">Stay period</th>
-      </tr>
+<div class="tabela">
+  <table>
+    <thead>
+      <tr><th>Processo</th><th>Empresa</th><th>Fase</th><th>Deferimento</th><th>Stay period</th></tr>
     </thead>
-    <tbody class="divide-y divide-slate-100">
+    <tbody>
       {% for processo in processos %}
-      <tr class="hover:bg-slate-50">
-        <td class="px-5 py-3">
-          <a class="font-medium tabular-nums hover:underline" href="{{ processo.get_absolute_url }}">{{ processo.numero_formatado }}</a>
-          <p class="text-xs text-slate-500">{{ processo.comarca }}</p>
+      <tr>
+        <td>
+          <a class="principal num" href="{{ processo.get_absolute_url }}">{{ processo.numero_formatado }}</a>
+          <div class="apoio">{{ processo.comarca|default:"—" }}</div>
         </td>
-        <td class="px-5 py-3">{{ processo.empresa }}</td>
-        <td class="px-5 py-3">
-          <span class="rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset {{ processo.cor_fase|badge_cor }}">{{ processo.get_fase_display }}</span>
-        </td>
-        <td class="px-5 py-3">{{ processo.data_deferimento|date:"d/m/Y"|default:"-" }}</td>
-        <td class="px-5 py-3">
+        <td>{{ processo.empresa }}</td>
+        <td><span class="etiqueta {{ processo.cor_fase|badge_cor }}">{{ processo.get_fase_display }}</span></td>
+        <td class="num texto-suave">{{ processo.data_deferimento|date:"d/m/Y"|default:"—" }}</td>
+        <td class="num">
           {% if processo.stay_period_fim %}
-            {{ processo.stay_period_fim|date:"d/m/Y" }}
-            <span class="text-xs {% if processo.stay_dias_restantes < 30 %}text-rose-600{% else %}text-slate-500{% endif %}">({{ processo.stay_dias_restantes }}d)</span>
-          {% else %}-{% endif %}
+            <div class="texto-suave">{{ processo.stay_period_fim|date:"d/m/Y" }}</div>
+            <div class="apoio {% if processo.stay_dias_restantes < 30 %}destaque-alerta{% endif %}">
+              {% if processo.stay_dias_restantes < 0 %}vencido há {{ processo.stay_dias_restantes|cut:"-" }}d{% else %}{{ processo.stay_dias_restantes }} dias restantes{% endif %}
+            </div>
+          {% else %}—{% endif %}
         </td>
       </tr>
       {% empty %}
-      <tr><td colspan="5" class="px-5 py-10 text-center text-slate-500">Nenhum processo encontrado.</td></tr>
+      <tr><td colspan="5" class="vazio">Nenhum processo encontrado.</td></tr>
       {% endfor %}
     </tbody>
   </table>

@@ -47,6 +47,13 @@ class SituacaoJuridica(models.TextChoices):
     OUTRO = "OUT", "Outro"
 
 
+class Urgencia(models.TextChoices):
+    ALTA = "ALTA", "Urgência alta"
+    MEDIA = "MEDIA", "Urgência média"
+    BAIXA = "BAIXA", "Urgência baixa"
+    NAO_AVALIADA = "NA", "Não avaliada"
+
+
 class Lead(TimeStampedModel):
     razao_social = models.CharField("razao social", max_length=200)
     nome_fantasia = models.CharField("nome fantasia", max_length=200, blank=True)
@@ -72,6 +79,10 @@ class Lead(TimeStampedModel):
     )
     estagio = models.CharField(
         "estagio", max_length=5, choices=Estagio.choices, default=Estagio.NOVO
+    )
+    urgencia = models.CharField(
+        "urgencia", max_length=5, choices=Urgencia.choices, default=Urgencia.NAO_AVALIADA,
+        help_text="Vem do diagnostico feito no site, quando houver.",
     )
     valor_estimado = models.DecimalField(
         "valor estimado do contrato", max_digits=12, decimal_places=2, null=True, blank=True
@@ -106,6 +117,14 @@ class Lead(TimeStampedModel):
 
     def get_absolute_url(self) -> str:
         return reverse("crm:detalhe", args=[self.pk])
+
+    @property
+    def cor_urgencia(self) -> str:
+        return {
+            Urgencia.ALTA: "vermelho",
+            Urgencia.MEDIA: "amarelo",
+            Urgencia.BAIXA: "verde",
+        }.get(self.urgencia, "cinza")
 
     @property
     def esta_aberto(self) -> bool:

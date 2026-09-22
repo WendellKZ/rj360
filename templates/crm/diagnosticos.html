@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load rj_extras %}
+{% block titulo %}Diagnósticos - {{ APP_NOME }}{% endblock %}
+{% block conteudo %}
+<div class="cabecalho">
+  <div>
+    <div class="sobretitulo">Captação</div>
+    <h1>Diagnósticos do site</h1>
+    <p class="subtitulo">Quem respondeu o questionário e ainda espera o primeiro contato humano.</p>
+  </div>
+  <a class="btn" href="{% url 'crm:funil' %}">Ver funil</a>
+</div>
+
+<div class="kpis">
+  <div class="kpi">
+    <div class="rotulo">Aguardando contato</div>
+    <div class="valor">{{ total_abertos }}</div>
+  </div>
+  <div class="kpi">
+    <div class="rotulo">Prazo estourado</div>
+    <div class="valor {% if total_estourados %}alerta{% endif %}">{{ total_estourados }}</div>
+    <div class="sub">30 min · 4 h · 1 dia útil</div>
+  </div>
+</div>
+
+<form method="get" class="filtros">
+  <select name="filtro">
+    <option value="abertos" {% if filtro == 'abertos' %}selected{% endif %}>Aguardando contato</option>
+    <option value="todos" {% if filtro == 'todos' %}selected{% endif %}>Todos</option>
+    <option value="ALTA" {% if filtro == 'ALTA' %}selected{% endif %}>Urgência alta</option>
+    <option value="MEDIA" {% if filtro == 'MEDIA' %}selected{% endif %}>Urgência média</option>
+    <option value="BAIXA" {% if filtro == 'BAIXA' %}selected{% endif %}>Urgência baixa</option>
+  </select>
+  <button class="btn" type="submit">Filtrar</button>
+</form>
+
+<div class="tabela">
+  <table>
+    <thead>
+      <tr><th>Recebido</th><th>Contato</th><th>Perfil</th><th>Urgência</th><th>Primeiro contato</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for diagnostico in diagnosticos %}
+      <tr>
+        <td class="num texto-suave">{{ diagnostico.criado_em|date:"d/m/Y H:i" }}</td>
+        <td>
+          <div style="font-weight:500">{{ diagnostico.empresa|default:"(empresa não informada)" }}</div>
+          <div class="apoio">{{ diagnostico.nome }}{% if diagnostico.telefone %} · {{ diagnostico.telefone }}{% endif %}{% if diagnostico.email %} · {{ diagnostico.email }}{% endif %}</div>
+        </td>
+        <td class="texto-suave">{{ diagnostico.perfil|default:"—" }}</td>
+        <td>
+          <span class="etiqueta {{ diagnostico.cor|badge_cor }}">{{ diagnostico.get_urgencia_display }}</span>
+          <div class="apoio">{{ diagnostico.pontuacao }} pontos</div>
+        </td>
+        <td class="{% if diagnostico.sla_estourado %}destaque-alerta{% else %}texto-suave{% endif %}">
+          {{ diagnostico.resumo_sla }}
+        </td>
+        <td class="direita">
+          {% if diagnostico.lead %}
+            <a class="btn btn-p" href="{{ diagnostico.lead.get_absolute_url }}">ver lead</a>
+          {% else %}
+            <form method="post" action="{% url 'crm:diagnostico_lead' diagnostico.pk %}" style="display:inline">
+              {% csrf_token %}<button class="btn btn-p btn-primario" type="submit">criar lead</button>
+            </form>
+            {% if not diagnostico.atendido_em %}
+            <form method="post" action="{% url 'crm:diagnostico_contato' diagnostico.pk %}" style="display:inline">
+              {% csrf_token %}<button class="btn btn-p" type="submit">só contatei</button>
+            </form>
+            {% endif %}
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="vazio">Nenhum diagnóstico neste filtro.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "partials/paginacao.html" %}
+{% endblock %}

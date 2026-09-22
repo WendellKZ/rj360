@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count, Q, Sum
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.generic import TemplateView, View
 
@@ -13,10 +13,18 @@ from apps.empresas.models import Empresa, SituacaoEmpresa
 from apps.processos.models import FaseProcesso, Prazo, ProcessoRJ, StatusPrazo
 
 
-class HomeView(LoginRequiredMixin, View):
-    """Direciona equipe interna para o painel e cliente para o portal."""
+class HomeView(View):
+    """A raiz do site: visitante ve a pagina publica, quem entrou vai ao seu espaco."""
 
     def get(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            from apps.publico.conteudo import COMO_FUNCIONA, ETAPAS_JORNADA
+
+            return render(
+                request,
+                "publico/home.html",
+                {"como_funciona": COMO_FUNCIONA, "etapas": ETAPAS_JORNADA},
+            )
         if request.user.is_cliente:
             return redirect("portal:home")
         return redirect("core:dashboard")
@@ -24,6 +32,7 @@ class HomeView(LoginRequiredMixin, View):
 
 class DashboardView(EquipeInternaMixin, TemplateView):
     template_name = "core/dashboard.html"
+    extra_context = {"secao": "painel"}
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)

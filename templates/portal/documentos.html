@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load rj_extras %}
+{% block titulo %}Documentos - {{ APP_NOME }}{% endblock %}
+{% block conteudo_cliente %}
+<div class="cabecalho">
+  <div>
+    <div class="sobretitulo">Portal do cliente</div>
+    <h1>Documentos</h1>
+    <p class="subtitulo">O que a equipe precisa de você — e o que já foi entregue.</p>
+  </div>
+</div>
+
+<section class="cartao">
+  <header class="cartao-cab">
+    <h2>Pendentes {% if pendentes %}({{ pendentes|length }}){% endif %}</h2>
+  </header>
+  <ul class="lista">
+    {% for pedido in pendentes %}
+    <li>
+      <div class="doc-pedido">
+        <div class="info">
+          <div style="font-weight:500">{{ pedido.titulo }}</div>
+          {% if pedido.motivo %}<div class="texto-fraco">{{ pedido.motivo }}</div>{% endif %}
+          <div style="margin-top:6px">
+            <span class="etiqueta {{ pedido.cor|badge_cor }}">{{ pedido.get_status_display }}</span>
+            {% if pedido.prazo %}
+              <span class="texto-fraco num {% if pedido.atrasado %}destaque-alerta{% endif %}">
+                prazo: {{ pedido.prazo|date:"d/m/Y" }}{% if pedido.atrasado %} · atrasado{% endif %}
+              </span>
+            {% endif %}
+          </div>
+          {% if pedido.observacao_equipe %}
+          <div class="aviso aviso--warning" style="margin-top:8px">{{ pedido.observacao_equipe }}</div>
+          {% endif %}
+        </div>
+        <form method="post" action="{% url 'portal:documento_enviar' pedido.pk %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="file" name="arquivo" required>
+          <button class="btn btn-primario" type="submit">Enviar</button>
+        </form>
+      </div>
+    </li>
+    {% empty %}
+    <li class="vazio">Nada pendente no momento. Quando precisarmos de algo, aparece aqui.</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="cartao">
+  <header class="cartao-cab"><h2>Entregues</h2></header>
+  <ul class="lista">
+    {% for pedido in entregues %}
+    <li style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div>
+        <div style="font-weight:500">
+          {% if pedido.arquivo %}<a href="{{ pedido.arquivo.url }}" target="_blank" rel="noopener">{{ pedido.titulo }}</a>{% else %}{{ pedido.titulo }}{% endif %}
+        </div>
+        <div class="texto-fraco num">enviado em {{ pedido.enviado_em|date:"d/m/Y" }}</div>
+      </div>
+      <span class="etiqueta {{ pedido.cor|badge_cor }}">{{ pedido.get_status_display }}</span>
+    </li>
+    {% empty %}
+    <li class="vazio">Nenhum documento entregue ainda.</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

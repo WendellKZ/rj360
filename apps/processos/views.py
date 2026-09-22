@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.contrib import messages
 from django.db.models import Q
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.generic import CreateView, DetailView, ListView, UpdateView, View
@@ -12,14 +13,24 @@ from apps.accounts.mixins import EquipeInternaMixin
 from apps.integracoes.models import StatusSincronizacao
 from apps.integracoes.services import sincronizar_processo
 
-from .forms import AndamentoForm, CredorForm, DocumentoForm, ParcelaForm, PrazoForm, ProcessoForm
-from .models import FaseProcesso, Prazo, ProcessoRJ, StatusPrazo
+from .forms import (
+    AndamentoForm,
+    CredorForm,
+    DocumentoForm,
+    ImportacaoCredoresForm,
+    ParcelaForm,
+    PrazoForm,
+    ProcessoForm,
+)
+from .importacao import PlanilhaInvalida, aplicar_importacao, ler_planilha, planilha_modelo
+from .models import FaseProcesso, ImportacaoCredores, Prazo, ProcessoRJ, StatusPrazo
 from .services import gerar_prazos_legais, resumo_credores
 
 
 class ProcessoListView(EquipeInternaMixin, ListView):
     model = ProcessoRJ
     template_name = "processos/lista.html"
+    extra_context = {"secao": "processos"}
     context_object_name = "processos"
     paginate_by = 25
 
@@ -50,6 +61,7 @@ class ProcessoListView(EquipeInternaMixin, ListView):
 class ProcessoDetailView(EquipeInternaMixin, DetailView):
     model = ProcessoRJ
     template_name = "processos/detalhe.html"
+    extra_context = {"secao": "processos"}
     context_object_name = "processo"
 
     def get_queryset(self):
@@ -77,6 +89,7 @@ class ProcessoCreateView(EquipeInternaMixin, CreateView):
     model = ProcessoRJ
     form_class = ProcessoForm
     template_name = "processos/form.html"
+    extra_context = {"secao": "processos"}
 
     def form_valid(self, form):
         resposta = super().form_valid(form)
@@ -91,6 +104,7 @@ class ProcessoUpdateView(EquipeInternaMixin, UpdateView):
     model = ProcessoRJ
     form_class = ProcessoForm
     template_name = "processos/form.html"
+    extra_context = {"secao": "processos"}
 
     def form_valid(self, form):
         resposta = super().form_valid(form)
@@ -179,6 +193,7 @@ class PrazoConcluirView(EquipeInternaMixin, View):
 
 class AgendaPrazosView(EquipeInternaMixin, ListView):
     template_name = "processos/agenda.html"
+    extra_context = {"secao": "prazos"}
     context_object_name = "prazos"
     paginate_by = 50
 
@@ -214,3 +229,85 @@ class SincronizarDataJudView(EquipeInternaMixin, View):
         else:
             messages.error(request, f"Nao foi possivel sincronizar: {registro.mensagem}")
         return redirect(processo.get_absolute_url())
+
+
+class ImportarCredoresView(EquipeInternaMixin, View):
+    """Passo 1: recebe a planilha e mostra a previa para conferencia."""
+
+    template_name = "processos/importar_credores.html"
+
+    def get(self, request, pk):
+        processo = get_object_or_404(ProcessoRJ, pk=pk)
+        return render(
+            request,
+            self.template_name,
+            {"processo": processo, "form": ImportacaoCredoresForm(), "secao": "processos"},
+        )
+
+    def post(self, request, pk):
+        processo = get_object_or_404(ProcessoRJ, pk=pk)
+        form = ImportacaoCredoresForm(request.POST, request.FILES)
+        contexto = {"processo": processo, "form": form, "secao": "processos"}
+        if not form.is_valid():
+            return render(request, self.template_name, contexto)
+
+        arquivo = form.cleaned_data["arquivo"]
+        try:
+            resultado = ler_planilha(arquivo, arquivo.name)
+        except PlanilhaInvalida as erro:
+            form.add_error("arquivo", str(erro))
+            return render(request, self.template_name, contexto)
+
+        arquivo.seek(0)
+        importacao = ImportacaoCredores.objects.create(
+            processo=processo,
+            arquivo=arquivo,
+            enviado_por=request.user,
+            linhas_lidas=len(resultado.linhas),
+            linhas_validas=len(resultado.validas),
+        )
+        contexto.update(
+            {
+                "resultado": resultado,
+                "importacao": importacao,
+                "politica": form.cleaned_data["politica"],
+            }
+        )
+        return render(request, self.template_name, contexto)
+
+
+class ConfirmarImportacaoCredoresView(EquipeInternaMixin, View):
+    """Passo 2: relê o arquivo salvo e grava o que foi conferido."""
+
+    def post(self, request, pk):
+        importacao = get_object_or_404(ImportacaoCredores, pk=pk)
+        politica = request.POST.get("politica", "atualizar")
+        if politica not in {"atualizar", "ignorar", "duplicar"}:
+            politica = "atualizar"
+        try:
+            with importacao.arquivo.open("rb") as arquivo:
+                resultado = ler_planilha(arquivo, importacao.arquivo.name)
+        except PlanilhaInvalida as erro:
+            messages.error(request, f"Nao foi possivel reler a planilha: {erro}")
+            return redirect(importacao.processo.get_absolute_url())
+
+        numeros = aplicar_importacao(importacao, resultado, politica)
+        messages.success(
+            request,
+            f"Quadro de credores atualizado: {numeros['criados']} criado(s), "
+            f"{numeros['atualizados']} atualizado(s), {numeros['ignorados']} ignorado(s)"
+            + (f", {numeros['com_erro']} linha(s) com erro descartada(s)." if numeros["com_erro"] else "."),
+        )
+        return redirect(importacao.processo.get_absolute_url())
+
+
+class ModeloCredoresView(EquipeInternaMixin, View):
+    """Baixa a planilha modelo preenchida com exemplos."""
+
+    def get(self, request):
+        resposta = HttpResponse(
+            planilha_modelo(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        resposta["Content-Disposition"] = 'attachment; filename="modelo-credores-rj360.xlsx"'
+        return resposta

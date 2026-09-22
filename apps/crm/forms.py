@@ -9,7 +9,7 @@ class LeadForm(forms.ModelForm):
         fields = [
             "razao_social", "nome_fantasia", "cnpj", "porte", "setor", "cidade", "uf",
             "contato_nome", "contato_cargo", "contato_email", "contato_telefone",
-            "origem", "situacao_juridica", "estagio", "valor_estimado",
+            "origem", "situacao_juridica", "estagio", "urgencia", "valor_estimado",
             "responsavel", "proximo_contato", "motivo_perda", "observacoes",
         ]
         widgets = {

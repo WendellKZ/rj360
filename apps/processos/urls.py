@@ -16,6 +16,13 @@ urlpatterns = [
     path("<int:pk>/sincronizar/", views.SincronizarDataJudView.as_view(), name="sincronizar"),
     path("<int:pk>/documentos/novo/", views.DocumentoCreateView.as_view(), name="documento_novo"),
     path("<int:pk>/credores/novo/", views.CredorCreateView.as_view(), name="credor_novo"),
+    path("<int:pk>/credores/importar/", views.ImportarCredoresView.as_view(), name="credores_importar"),
+    path("credores/modelo.xlsx", views.ModeloCredoresView.as_view(), name="credores_modelo"),
+    path(
+        "credores/importacoes/<int:pk>/confirmar/",
+        views.ConfirmarImportacaoCredoresView.as_view(),
+        name="credores_importar_confirmar",
+    ),
     path("<int:pk>/parcelas/nova/", views.ParcelaCreateView.as_view(), name="parcela_nova"),
     path("prazos/<int:pk>/concluir/", views.PrazoConcluirView.as_view(), name="prazo_concluir"),
 ]

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load rj_extras %}
+{% block titulo %}Credores - {{ APP_NOME }}{% endblock %}
+{% block conteudo_cliente %}
+<div class="cabecalho">
+  <div>
+    <div class="sobretitulo">Portal do cliente</div>
+    <h1>Seus credores</h1>
+    <p class="subtitulo">Onde está cada negociação, com o histórico do que já aconteceu.</p>
+  </div>
+</div>
+
+{% if credores %}
+<div class="kpis">
+  <div class="kpi">
+    <div class="rotulo">Dívida original</div>
+    <div class="valor num" style="font-size:24px">{{ total_original|moeda }}</div>
+    <div class="sub">{{ credores|length }} credor(es)</div>
+  </div>
+  <div class="kpi">
+    <div class="rotulo">Economia negociada</div>
+    <div class="valor num positivo" style="font-size:24px">{{ economia_total|moeda }}</div>
+  </div>
+  <div class="kpi">
+    <div class="rotulo">Acordos fechados</div>
+    <div class="valor">{{ com_acordo }}</div>
+  </div>
+</div>
+
+{% for credor in credores %}
+<article class="credor-cartao">
+  <div class="topo">
+    <div>
+      <h3>{{ credor.nome }}</h3>
+      <div class="tipo">{{ credor.get_classe_display }}{% if credor.documento %} · {{ credor.documento }}{% endif %}</div>
+    </div>
+    <span class="etiqueta {{ credor.cor_negociacao|badge_cor }}">{{ credor.get_estagio_negociacao_display }}</span>
+  </div>
+
+  <div class="credor-valores">
+    <div class="item">
+      <div class="rotulo">Valor original</div>
+      <div class="valor num">{{ credor.valor_arrolado|moeda }}</div>
+    </div>
+    {% if credor.valor_negociado is not None %}
+    <div class="item">
+      <div class="rotulo">Valor negociado</div>
+      <div class="valor num">{{ credor.valor_negociado|moeda }}</div>
+    </div>
+    <div class="item">
+      <div class="rotulo">Economia</div>
+      <div class="valor num economia">{{ credor.economia|moeda }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="barra-progresso {% if credor.progresso == 100 %}completo{% endif %}">
+    <span style="width:{{ credor.progresso }}%"></span>
+  </div>
+
+  {% if credor.eventos.all %}
+  <details>
+    <summary>Ver histórico ({{ credor.eventos.all|length }})</summary>
+    <ul class="historico">
+      {% for evento in credor.eventos.all %}
+      {% if evento.visivel_cliente %}
+      <li><span class="data">{{ evento.data|date:"d/m/Y" }}</span><span>{{ evento.descricao }}</span></li>
+      {% endif %}
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+</article>
+{% endfor %}
+
+{% else %}
+<div class="cartao"><div class="vazio">
+  <p>O quadro de credores ainda está sendo levantado.</p>
+  <p class="texto-fraco">Assim que estiver pronto, cada credor aparece aqui com a situação da negociação.</p>
+</div></div>
+{% endif %}
+{% endblock %}

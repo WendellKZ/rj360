@@ -1,43 +1,51 @@
 {% extends "base.html" %}
 {% load rj_extras %}
 {% block titulo %}Processo {{ processo.numero_formatado }}{% endblock %}
-{% block conteudo %}
-<div class="mb-5">
-  <a class="text-sm text-emerald-700 hover:underline" href="{% url 'portal:home' %}">&larr; voltar</a>
-  <h1 class="mt-2 text-2xl font-semibold tabular-nums tracking-tight">{{ processo.numero_formatado }}</h1>
-  <p class="text-sm text-slate-500">{{ processo.empresa }} &middot; {{ processo.get_fase_display }}</p>
+{% block conteudo_cliente %}
+<a class="voltar" href="{% url 'portal:home' %}">← voltar</a>
+
+<div class="cabecalho topo">
+  <div>
+    <div class="sobretitulo">Meu processo</div>
+    <h1 class="num" style="font-size:28px">{{ processo.numero_formatado }}</h1>
+    <div class="texto-fraco">{{ processo.empresa }} · {{ processo.comarca }}</div>
+  </div>
+  <span class="etiqueta {{ processo.cor_fase|badge_cor }}">{{ processo.get_fase_display }}</span>
 </div>
 
-<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-  <section class="lg:col-span-2 rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
-    <header class="border-b border-slate-200 px-5 py-3"><h2 class="font-semibold">Linha do tempo</h2></header>
-    <ul class="divide-y divide-slate-100">
+<div class="grade grade-2-1">
+  <section class="cartao">
+    <header class="cartao-cab"><h2>Linha do tempo</h2></header>
+    <ul class="linha-tempo">
       {% for andamento in andamentos %}
-      <li class="px-5 py-3">
-        <div class="flex items-center justify-between gap-3">
-          <p class="font-medium">{{ andamento.titulo }}</p>
-          <span class="shrink-0 text-xs text-slate-500">{{ andamento.data|date:"d/m/Y" }}</span>
+      <li>
+        <div class="topo">
+          <span class="titulo">{{ andamento.titulo }}</span>
+          <span class="quando num">{{ andamento.data|date:"d/m/Y" }}</span>
         </div>
-        <p class="text-xs text-slate-500">{{ andamento.get_tipo_display }}</p>
-        {% if andamento.descricao %}<p class="mt-1 whitespace-pre-line text-sm text-slate-600">{{ andamento.descricao }}</p>{% endif %}
+        <div class="meta">{{ andamento.get_tipo_display }}</div>
+        {% if andamento.descricao %}<div class="texto">{{ andamento.descricao }}</div>{% endif %}
       </li>
       {% empty %}
-      <li class="px-5 py-8 text-center text-sm text-slate-500">Nenhuma movimentacao publicada.</li>
+      <li class="vazio">Nenhuma movimentação publicada.</li>
       {% endfor %}
     </ul>
   </section>
-  <aside class="rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
-    <header class="border-b border-slate-200 px-5 py-3"><h2 class="font-semibold">Documentos</h2></header>
-    <ul class="divide-y divide-slate-100">
-      {% for documento in documentos %}
-      <li class="px-5 py-2.5 text-sm">
-        <a class="font-medium hover:underline" href="{{ documento.arquivo.url }}" target="_blank" rel="noopener">{{ documento.titulo }}</a>
-        <p class="text-xs text-slate-500">{{ documento.get_categoria_display }} &middot; {{ documento.data_referencia|date:"d/m/Y"|default:"" }}</p>
-      </li>
-      {% empty %}
-      <li class="px-5 py-6 text-center text-sm text-slate-500">Nenhum documento disponivel.</li>
-      {% endfor %}
-    </ul>
+
+  <aside>
+    <section class="cartao">
+      <header class="cartao-cab"><h2>Documentos</h2></header>
+      <ul class="lista">
+        {% for documento in documentos %}
+        <li>
+          <a href="{{ documento.arquivo.url }}" target="_blank" rel="noopener">{{ documento.titulo }}</a>
+          <div class="texto-fraco">{{ documento.get_categoria_display }} · {{ documento.data_referencia|date:"d/m/Y"|default:"" }}</div>
+        </li>
+        {% empty %}
+        <li class="vazio">Nenhum documento disponível.</li>
+        {% endfor %}
+      </ul>
+    </section>
   </aside>
 </div>
 {% endblock %}

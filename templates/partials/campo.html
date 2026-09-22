@@ -1,13 +1,15 @@
 {% load widget_tweaks %}
-<div class="{{ wrapper_class|default:'' }}">
-  <label class="mb-1 block text-sm font-medium text-slate-700" for="{{ campo.id_for_label }}">
-    {{ campo.label }}{% if campo.field.required %}<span class="text-rose-600">*</span>{% endif %}
-  </label>
-  {% if campo.field.widget.input_type == 'checkbox' %}
-    {% render_field campo class="h-4 w-4 rounded border-slate-300" %}
-  {% else %}
-    {% render_field campo class="w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500" %}
-  {% endif %}
-  {% if campo.help_text %}<p class="mt-1 text-xs text-slate-500">{{ campo.help_text }}</p>{% endif %}
-  {% for erro in campo.errors %}<p class="mt-1 text-xs text-rose-600">{{ erro }}</p>{% endfor %}
+{% if campo.field.widget.input_type == 'checkbox' %}
+<div class="campo marcavel">
+  {% render_field campo %}
+  <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+  {% for erro in campo.errors %}<p class="erro">{{ erro }}</p>{% endfor %}
 </div>
+{% else %}
+<div class="campo">
+  {% if campo.label %}<label for="{{ campo.id_for_label }}">{{ campo.label }}{% if campo.field.required %} *{% endif %}</label>{% endif %}
+  {% render_field campo %}
+  {% if campo.help_text %}<p class="ajuda">{{ campo.help_text }}</p>{% endif %}
+  {% for erro in campo.errors %}<p class="erro">{{ erro }}</p>{% endfor %}
+</div>
+{% endif %}

@@ -1,0 +1,33 @@
+{% extends "publico/base_site.html" %}
+{% block titulo %}Diagnóstico gratuito — {{ APP_NOME }}{% endblock %}
+{% block conteudo_site %}
+<section class="site-secao">
+  <div class="quiz">
+    <div class="texto-fraco" style="display:flex;justify-content:space-between">
+      <span>Pergunta {{ numero }} de {{ total }}</span><span>{{ percentual }}%</span>
+    </div>
+    <div class="quiz-progresso"><span style="width:{{ percentual }}%"></span></div>
+
+    {% if erro %}<div class="aviso aviso--error">{{ erro }}</div>{% endif %}
+
+    <h1>{{ pergunta.texto }}</h1>
+    <form method="post" class="opcoes">
+      {% csrf_token %}
+      {% for indice, opcao in opcoes %}
+      <div class="opcao">
+        <button type="submit" name="opcao" value="{{ indice }}">{{ opcao.0 }}</button>
+      </div>
+      {% endfor %}
+    </form>
+
+    <div class="quiz-rodape">
+      {% if pode_voltar %}
+      <form method="post" action="{% url 'publico:quiz_voltar' %}">{% csrf_token %}
+        <button class="btn-texto" type="submit">← voltar à pergunta anterior</button>
+      </form>
+      {% else %}<span></span>{% endif %}
+      <span class="selo-sigilo">Anônimo e sigiloso — nada é compartilhado com credores</span>
+    </div>
+  </div>
+</section>
+{% endblock %}

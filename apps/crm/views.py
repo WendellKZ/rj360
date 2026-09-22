@@ -1,16 +1,20 @@
 from django.contrib import messages
 from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404, redirect
+from django.utils import timezone
 from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView, View
+
+from apps.publico.models import Diagnostico, Urgencia as UrgenciaDiagnostico
 
 from apps.accounts.mixins import EquipeInternaMixin
 
 from .forms import AtividadeForm, LeadForm
-from .models import Estagio, Lead
+from .models import Estagio, Lead, OrigemLead, SituacaoJuridica, Urgencia
 
 
 class FunilView(EquipeInternaMixin, TemplateView):
     template_name = "crm/funil.html"
+    extra_context = {"secao": "funil"}
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
@@ -39,6 +43,7 @@ class FunilView(EquipeInternaMixin, TemplateView):
 class LeadListView(EquipeInternaMixin, ListView):
     model = Lead
     template_name = "crm/lista.html"
+    extra_context = {"secao": "leads"}
     context_object_name = "leads"
     paginate_by = 25
 
@@ -68,6 +73,7 @@ class LeadListView(EquipeInternaMixin, ListView):
 class LeadDetailView(EquipeInternaMixin, DetailView):
     model = Lead
     template_name = "crm/detalhe.html"
+    extra_context = {"secao": "leads"}
     context_object_name = "lead"
 
     def get_context_data(self, **kwargs):
@@ -82,6 +88,7 @@ class LeadCreateView(EquipeInternaMixin, CreateView):
     model = Lead
     form_class = LeadForm
     template_name = "crm/form.html"
+    extra_context = {"secao": "leads"}
 
     def form_valid(self, form):
         messages.success(self.request, "Lead cadastrado.")
@@ -92,6 +99,7 @@ class LeadUpdateView(EquipeInternaMixin, UpdateView):
     model = Lead
     form_class = LeadForm
     template_name = "crm/form.html"
+    extra_context = {"secao": "leads"}
 
     def form_valid(self, form):
         messages.success(self.request, "Lead atualizado.")
@@ -136,3 +144,98 @@ class ConverterLeadView(EquipeInternaMixin, View):
         empresa = lead.converter_em_empresa()
         messages.success(request, "Lead convertido em empresa cliente.")
         return redirect(empresa.get_absolute_url())
+
+
+# ---------------------------------------------------------------- diagnosticos
+
+URGENCIA_DO_DIAGNOSTICO = {
+    UrgenciaDiagnostico.ALTA: Urgencia.ALTA,
+    UrgenciaDiagnostico.MEDIA: Urgencia.MEDIA,
+    UrgenciaDiagnostico.BAIXA: Urgencia.BAIXA,
+}
+
+SITUACAO_PELA_RESPOSTA = {
+    "Execução judicial": SituacaoJuridica.RJ_EM_CURSO,
+    "Protesto / Serasa": SituacaoJuridica.PRE_CRISE,
+    "Fornecedor cortando prazo": SituacaoJuridica.PRE_CRISE,
+    "Apertando, mas controlando": SituacaoJuridica.PRE_CRISE,
+}
+
+
+class DiagnosticosView(EquipeInternaMixin, ListView):
+    """Diagnosticos recebidos pelo site, na ordem de quem espera ha mais tempo."""
+
+    template_name = "crm/diagnosticos.html"
+    context_object_name = "diagnosticos"
+    paginate_by = 30
+    extra_context = {"secao": "diagnosticos"}
+
+    def get_queryset(self):
+        qs = Diagnostico.objects.select_related("lead", "atendido_por")
+        filtro = self.request.GET.get("filtro", "abertos")
+        if filtro == "abertos":
+            qs = qs.filter(lead__isnull=True, atendido_em__isnull=True)
+        elif filtro in {"ALTA", "MEDIA", "BAIXA", "PF"}:
+            qs = qs.filter(urgencia=filtro)
+        return qs.order_by("-criado_em")
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto["filtro"] = self.request.GET.get("filtro", "abertos")
+        abertos = Diagnostico.objects.filter(lead__isnull=True, atendido_em__isnull=True)
+        contexto["total_abertos"] = abertos.count()
+        contexto["total_estourados"] = sum(1 for d in abertos if d.sla_estourado)
+        return contexto
+
+
+class CriarLeadDoDiagnosticoView(EquipeInternaMixin, View):
+    """Transforma o diagnostico em lead no topo do funil."""
+
+    def post(self, request, pk):
+        diagnostico = get_object_or_404(Diagnostico, pk=pk)
+        if diagnostico.lead_id:
+            messages.info(request, "Este diagnostico ja virou lead.")
+            return redirect(diagnostico.lead.get_absolute_url())
+
+        respostas = {item.get("chave"): item.get("resposta") for item in diagnostico.respostas or []}
+        lead = Lead.objects.create(
+            razao_social=diagnostico.empresa or diagnostico.nome or f"Diagnóstico #{diagnostico.pk}",
+            contato_nome=diagnostico.nome,
+            contato_email=diagnostico.email,
+            contato_telefone=diagnostico.telefone,
+            origem=OrigemLead.SITE,
+            situacao_juridica=SITUACAO_PELA_RESPOSTA.get(
+                respostas.get("situacao"), SituacaoJuridica.PRE_CRISE
+            ),
+            estagio=Estagio.NOVO,
+            urgencia=URGENCIA_DO_DIAGNOSTICO.get(diagnostico.urgencia, Urgencia.NAO_AVALIADA),
+            responsavel=request.user,
+            proximo_contato=timezone.localdate(),
+            observacoes="\n".join(
+                f"{item.get('pergunta')} {item.get('resposta')}" for item in diagnostico.respostas or []
+            ),
+        )
+        diagnostico.lead = lead
+        diagnostico.atendido_em = timezone.now()
+        diagnostico.atendido_por = request.user
+        diagnostico.save(update_fields=["lead", "atendido_em", "atendido_por", "atualizado_em"])
+
+        lead.atividades.create(
+            titulo="Diagnóstico recebido pelo site",
+            descricao=f"Pontuação {diagnostico.pontuacao} · {diagnostico.get_urgencia_display()}",
+            autor=request.user,
+        )
+        messages.success(request, "Lead criado no funil, em “Novo lead”.")
+        return redirect(lead.get_absolute_url())
+
+
+class MarcarContatoDiagnosticoView(EquipeInternaMixin, View):
+    """Registra que alguem ja falou com a pessoa, sem criar lead."""
+
+    def post(self, request, pk):
+        diagnostico = get_object_or_404(Diagnostico, pk=pk)
+        diagnostico.atendido_em = timezone.now()
+        diagnostico.atendido_por = request.user
+        diagnostico.save(update_fields=["atendido_em", "atendido_por", "atualizado_em"])
+        messages.success(request, "Contato registrado.")
+        return redirect("crm:diagnosticos")

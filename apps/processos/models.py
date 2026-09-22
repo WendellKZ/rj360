@@ -344,6 +344,33 @@ class SituacaoCredito(models.TextChoices):
     EXCLUIDO = "EXC", "Excluido"
 
 
+class EstagioNegociacao(models.TextChoices):
+    NAO_INICIADA = "NAO", "Não iniciada"
+    LEVANTAMENTO = "LEV", "Levantamento"
+    EM_NEGOCIACAO = "NEG", "Em negociação"
+    PROPOSTA = "PROP", "Proposta enviada"
+    ACORDO = "ACOR", "Acordo fechado"
+    JUDICIAL = "JUD", "Discussão judicial"
+
+    @classmethod
+    def cor(cls, valor: str) -> str:
+        return {
+            cls.NAO_INICIADA: "cinza",
+            cls.LEVANTAMENTO: "azul",
+            cls.EM_NEGOCIACAO: "amarelo",
+            cls.PROPOSTA: "amarelo",
+            cls.ACORDO: "verde",
+            cls.JUDICIAL: "vermelho",
+        }.get(valor, "cinza")
+
+    @classmethod
+    def progresso(cls, valor: str) -> int:
+        return {
+            cls.NAO_INICIADA: 0, cls.LEVANTAMENTO: 25, cls.EM_NEGOCIACAO: 50,
+            cls.PROPOSTA: 75, cls.ACORDO: 100, cls.JUDICIAL: 40,
+        }.get(valor, 0)
+
+
 class Credor(TimeStampedModel):
     processo = models.ForeignKey(
         ProcessoRJ, verbose_name="processo", related_name="credores", on_delete=models.CASCADE
@@ -361,6 +388,15 @@ class Credor(TimeStampedModel):
         "situacao", max_length=3, choices=SituacaoCredito.choices, default=SituacaoCredito.ARROLADO
     )
     sujeito_rj = models.BooleanField("sujeito a RJ", default=True)
+    valor_negociado = models.DecimalField(
+        "valor apos negociacao", max_digits=15, decimal_places=2, null=True, blank=True,
+        help_text="Deixe vazio enquanto nao houver proposta fechada.",
+    )
+    estagio_negociacao = models.CharField(
+        "estagio da negociacao", max_length=5, choices=EstagioNegociacao.choices,
+        default=EstagioNegociacao.NAO_INICIADA,
+    )
+    visivel_cliente = models.BooleanField("visivel no portal", default=True)
     observacoes = models.TextField("observacoes", blank=True)
 
     class Meta:
@@ -370,6 +406,44 @@ class Credor(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"{self.nome} ({self.get_classe_display()})"
+
+    @property
+    def cor_negociacao(self) -> str:
+        return EstagioNegociacao.cor(self.estagio_negociacao)
+
+    @property
+    def progresso(self) -> int:
+        return EstagioNegociacao.progresso(self.estagio_negociacao)
+
+    @property
+    def economia(self):
+        """Quanto a negociacao ja tirou da divida original."""
+        if self.valor_negociado is None:
+            return None
+        return self.valor_arrolado - self.valor_negociado
+
+
+class EventoNegociacao(TimeStampedModel):
+    """Cada passo da conversa com um credor — o que o cliente acompanha."""
+
+    credor = models.ForeignKey(
+        Credor, verbose_name="credor", related_name="eventos", on_delete=models.CASCADE
+    )
+    data = models.DateField("data", default=timezone.localdate)
+    descricao = models.CharField("o que aconteceu", max_length=250)
+    visivel_cliente = models.BooleanField("visivel no portal", default=True)
+    registrado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, verbose_name="registrado por",
+        related_name="eventos_negociacao", on_delete=models.SET_NULL, null=True, blank=True,
+    )
+
+    class Meta:
+        verbose_name = "evento da negociacao"
+        verbose_name_plural = "eventos da negociacao"
+        ordering = ["-data", "-id"]
+
+    def __str__(self) -> str:
+        return f"{self.data:%d/%m/%Y} - {self.descricao}"
 
 
 class StatusParcela(models.TextChoices):
@@ -404,3 +478,47 @@ class Parcela(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"{self.descricao} - {self.vencimento:%d/%m/%Y}"
+
+
+class StatusImportacao(models.TextChoices):
+    PENDENTE = "PEND", "Aguardando conferencia"
+    CONCLUIDA = "CONC", "Concluida"
+    CANCELADA = "CANC", "Cancelada"
+
+
+def caminho_importacao(instance, filename: str) -> str:
+    return f"importacoes/{instance.processo_id}/{filename}"
+
+
+class ImportacaoCredores(TimeStampedModel):
+    """Planilha de credores enviada para o processo."""
+
+    processo = models.ForeignKey(
+        ProcessoRJ, verbose_name="processo", related_name="importacoes", on_delete=models.CASCADE
+    )
+    arquivo = models.FileField("arquivo", upload_to=caminho_importacao)
+    enviado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="enviado por",
+        related_name="importacoes",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    status = models.CharField(
+        "status", max_length=4, choices=StatusImportacao.choices, default=StatusImportacao.PENDENTE
+    )
+    linhas_lidas = models.PositiveIntegerField("linhas lidas", default=0)
+    linhas_validas = models.PositiveIntegerField("linhas validas", default=0)
+    criados = models.PositiveIntegerField("credores criados", default=0)
+    atualizados = models.PositiveIntegerField("credores atualizados", default=0)
+    ignorados = models.PositiveIntegerField("linhas ignoradas", default=0)
+    mensagem = models.TextField("mensagem", blank=True)
+
+    class Meta:
+        verbose_name = "importacao de credores"
+        verbose_name_plural = "importacoes de credores"
+        ordering = ["-criado_em"]
+
+    def __str__(self) -> str:
+        return f"{self.arquivo.name} ({self.get_status_display()})"

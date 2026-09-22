@@ -1,50 +1,94 @@
 {% load static %}<!DOCTYPE html>
-<html lang="pt-br" class="h-full">
+<html lang="pt-br">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block titulo %}{{ APP_NOME }}{% endblock %}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.4/dist/htmx.min.js"></script>
-  <style>[x-cloak]{display:none}</style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/rj360.css' %}">
+  <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.4/dist/htmx.min.js" defer></script>
 </head>
-<body class="h-full bg-slate-50 text-slate-800 antialiased">
-{% if user.is_authenticated %}
-<header class="bg-slate-900 text-slate-100">
-  <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
-    <a href="{% url 'core:home' %}" class="flex items-center gap-2">
-      <span class="rounded bg-emerald-500 px-2 py-1 text-sm font-bold text-slate-900">RJ</span>
-      <span class="text-lg font-semibold tracking-tight">{{ APP_NOME }}</span>
+<body>
+{% if user.is_authenticated and user.is_interno %}
+<div class="app">
+  <aside class="barra-lateral">
+    <div class="marca">
+      <a class="marca-nome" href="{% url 'core:dashboard' %}">{{ APP_NOME }}</a>
+      <div class="marca-area">Painel interno</div>
+    </div>
+
+    <div class="grupo-nav">Acompanhamento</div>
+    <a class="item-nav {% if secao == 'painel' %}ativo{% endif %}" href="{% url 'core:dashboard' %}"><span>Painel</span></a>
+    <a class="item-nav {% if secao == 'processos' %}ativo{% endif %}" href="{% url 'processos:lista' %}"><span>Processos</span></a>
+    <a class="item-nav {% if secao == 'prazos' %}ativo{% endif %}" href="{% url 'processos:agenda' %}">
+      <span>Prazos</span>
+      {% if prazos_atrasados %}<span class="contagem">{{ prazos_atrasados }}</span>{% endif %}
     </a>
-    <nav class="hidden gap-1 text-sm md:flex">
-      {% if user.is_interno %}
-        <a class="rounded px-3 py-2 hover:bg-slate-800" href="{% url 'core:dashboard' %}">Painel</a>
-        <a class="rounded px-3 py-2 hover:bg-slate-800" href="{% url 'empresas:lista' %}">Empresas</a>
-        <a class="rounded px-3 py-2 hover:bg-slate-800" href="{% url 'processos:lista' %}">Processos</a>
-        <a class="rounded px-3 py-2 hover:bg-slate-800" href="{% url 'processos:agenda' %}">Prazos</a>
-        <a class="rounded px-3 py-2 hover:bg-slate-800" href="{% url 'crm:funil' %}">Prospeccao</a>
-      {% else %}
-        <a class="rounded px-3 py-2 hover:bg-slate-800" href="{% url 'portal:home' %}">Meu processo</a>
-      {% endif %}
-    </nav>
-    <div class="flex items-center gap-3 text-sm">
-      <span class="hidden text-slate-300 sm:inline">{{ user.get_full_name|default:user.username }}</span>
-      {% if user.is_staff %}<a class="text-slate-300 hover:text-white" href="/admin/">Admin</a>{% endif %}
+    <a class="item-nav {% if secao == 'empresas' %}ativo{% endif %}" href="{% url 'empresas:lista' %}"><span>Empresas</span></a>
+
+    <div class="grupo-nav">Captação</div>
+    <a class="item-nav {% if secao == 'funil' %}ativo{% endif %}" href="{% url 'crm:funil' %}"><span>Funil</span></a>
+    <a class="item-nav {% if secao == 'diagnosticos' %}ativo{% endif %}" href="{% url 'crm:diagnosticos' %}">
+      <span>Diagnósticos</span>
+      {% if diagnosticos_abertos %}<span class="contagem">{{ diagnosticos_abertos }}</span>{% endif %}
+    </a>
+    <a class="item-nav {% if secao == 'leads' %}ativo{% endif %}" href="{% url 'crm:lista' %}">
+      <span>Leads</span>
+      {% if leads_atrasados_total %}<span class="contagem">{{ leads_atrasados_total }}</span>{% endif %}
+    </a>
+
+    <div class="rodape">
+      <div class="usuario">{{ user.get_full_name|default:user.username }}</div>
+      {% if user.is_staff %}<a href="/admin/">Administração</a>{% endif %}
       <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}
-        <button class="rounded bg-slate-800 px-3 py-1.5 hover:bg-slate-700">Sair</button>
+        <button class="sair" type="submit">Sair</button>
       </form>
     </div>
+  </aside>
+
+  <main class="conteudo">
+    {% include "partials/messages.html" %}
+    {% block conteudo %}{% endblock %}
+  </main>
+</div>
+
+{% elif user.is_authenticated %}
+<div class="portal">
+  <header class="portal-topo">
+    <div class="faixa">
+      <div>
+        <a class="marca-nome" href="{% url 'portal:home' %}">{{ APP_NOME }}</a>
+        <div class="marca-area">{{ user.empresa }}</div>
+      </div>
+      <nav class="portal-nav">
+        <a class="{% if secao == 'inicio' %}ativo{% endif %}" href="{% url 'portal:home' %}">Início</a>
+        <a class="{% if secao == 'credores' %}ativo{% endif %}" href="{% url 'portal:credores' %}">Credores</a>
+        <a class="{% if secao == 'documentos' %}ativo{% endif %}" href="{% url 'portal:documentos' %}">
+          Documentos{% if documentos_pendentes %} <span class="contagem">{{ documentos_pendentes }}</span>{% endif %}
+        </a>
+        <a class="{% if secao == 'reunioes' %}ativo{% endif %}" href="{% url 'portal:reunioes' %}">Reuniões</a>
+        <a class="{% if secao == 'conversa' %}ativo{% endif %}" href="{% url 'portal:conversa' %}">Conversa</a>
+      </nav>
+      <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}
+        <button class="sair" type="submit">Sair</button>
+      </form>
+    </div>
+  </header>
+  <main class="portal-conteudo">
+    {% include "partials/messages.html" %}
+    {% block conteudo_portal %}{% block conteudo_cliente %}{% endblock %}{% endblock %}
+  </main>
+</div>
+
+{% else %}
+<div class="publico">
+  <div class="cartao-publico">
+    {% include "partials/messages.html" %}
+    {% block conteudo_publico %}{% endblock %}
   </div>
-</header>
+</div>
 {% endif %}
-
-<main class="mx-auto max-w-7xl px-4 py-6">
-  {% include "partials/messages.html" %}
-  {% block conteudo %}{% endblock %}
-</main>
-
-<footer class="mx-auto max-w-7xl px-4 py-8 text-xs text-slate-400">
-  {{ APP_NOME }} &middot; {{ APP_DESCRICAO }}
-</footer>
 </body>
 </html>

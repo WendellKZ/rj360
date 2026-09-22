@@ -1,40 +1,40 @@
 {% extends "base.html" %}
 {% load rj_extras %}
-{% block titulo %}Prospeccao - {{ APP_NOME }}{% endblock %}
+{% block titulo %}Prospecção - {{ APP_NOME }}{% endblock %}
 {% block conteudo %}
-<div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+<div class="cabecalho">
   <div>
-    <h1 class="text-2xl font-semibold tracking-tight">Funil de prospeccao</h1>
-    <p class="text-sm text-slate-500">{{ ganhos }} ganho(s) &middot; {{ perdidos }} perdido(s)</p>
+    <div class="sobretitulo">Captação</div>
+    <h1>Funil de prospecção</h1>
+    <p class="subtitulo">{{ ganhos }} ganho(s) · {{ perdidos }} perdido(s)</p>
   </div>
-  <div class="flex gap-2 text-sm">
-    <a href="?{% if request.GET.meus == '1' %}{% else %}meus=1{% endif %}" class="rounded-md bg-white px-3 py-2 font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50">
-      {% if request.GET.meus == '1' %}ver todos{% else %}somente meus{% endif %}
-    </a>
-    <a href="{% url 'crm:lista' %}" class="rounded-md bg-white px-3 py-2 font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50">Lista</a>
-    <a href="{% url 'crm:novo' %}" class="rounded-md bg-emerald-600 px-3 py-2 font-medium text-white hover:bg-emerald-700">Novo lead</a>
+  <div class="acoes">
+    <a class="btn" href="?{% if request.GET.meus == '1' %}{% else %}meus=1{% endif %}">{% if request.GET.meus == '1' %}ver todos{% else %}somente meus{% endif %}</a>
+    <a class="btn" href="{% url 'crm:lista' %}">Lista</a>
+    <a class="btn btn-primario" href="{% url 'crm:novo' %}">Novo lead</a>
   </div>
 </div>
 
-<div class="grid grid-cols-1 gap-4 md:grid-cols-3 xl:grid-cols-5">
+<div class="colunas-funil">
   {% for coluna in colunas %}
-  <section class="rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
-    <header class="border-b border-slate-200 px-4 py-3">
-      <p class="text-sm font-semibold">{{ coluna.rotulo }}</p>
-      <p class="text-xs text-slate-500">{{ coluna.total }} lead(s) &middot; {{ coluna.valor_total|moeda }}</p>
+  <section class="coluna-funil">
+    <header>
+      <div class="titulo">{{ coluna.rotulo }}</div>
+      <div class="sub">{{ coluna.total }} lead(s) · {{ coluna.valor_total|moeda }}</div>
     </header>
-    <ul class="max-h-[32rem] space-y-2 overflow-y-auto p-3">
+    <div class="cartoes">
       {% for lead in coluna.leads %}
-      <li class="rounded-lg border border-slate-200 p-3 text-sm hover:border-emerald-400">
-        <a class="font-medium hover:underline" href="{{ lead.get_absolute_url }}">{{ lead }}</a>
-        <p class="text-xs text-slate-500">{{ lead.cidade }}{% if lead.uf %}/{{ lead.uf }}{% endif %} &middot; {{ lead.get_situacao_juridica_display }}</p>
-        {% if lead.valor_estimado %}<p class="mt-1 text-xs font-medium text-slate-700">{{ lead.valor_estimado|moeda }}</p>{% endif %}
-        {% if lead.contato_atrasado %}<p class="mt-1 text-xs text-rose-600">contato atrasado: {{ lead.proximo_contato|date:"d/m" }}</p>{% endif %}
-      </li>
+      <article class="cartao-lead">
+        <a class="nome" href="{{ lead.get_absolute_url }}">{{ lead }}</a>
+        {% if lead.urgencia != 'NA' %}<span class="etiqueta {{ lead.cor_urgencia|badge_cor }}" style="font-size:10.5px;padding:1px 7px">{{ lead.get_urgencia_display }}</span>{% endif %}
+        <div class="meta">{{ lead.cidade }}{% if lead.uf %}/{{ lead.uf }}{% endif %} · {{ lead.get_situacao_juridica_display }}</div>
+        {% if lead.valor_estimado %}<div class="valor num">{{ lead.valor_estimado|moeda }}</div>{% endif %}
+        {% if lead.contato_atrasado %}<div class="meta destaque-alerta">contato atrasado: {{ lead.proximo_contato|date:"d/m" }}</div>{% endif %}
+      </article>
       {% empty %}
-      <li class="py-6 text-center text-xs text-slate-400">vazio</li>
+      <div class="texto-fraco" style="text-align:center;padding:18px 0">vazio</div>
       {% endfor %}
-    </ul>
+    </div>
   </section>
   {% endfor %}
 </div>

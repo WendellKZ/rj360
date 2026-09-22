@@ -1,0 +1,59 @@
+{% extends "publico/base_site.html" %}
+{% block conteudo_site %}
+<section class="hero">
+  <div class="selo">Consultoria de reestruturação · advogados parceiros OAB</div>
+  <h1>Sua empresa tem saída — veja o caminho inteiro</h1>
+  <p class="chamada">Reestruturação com transparência total. Você acompanha cada etapa, cada credor
+    e cada real economizado — sem caixa-preta.</p>
+  <div class="acoes">
+    <a class="btn btn-primario btn-grande" href="{% url 'publico:quiz' %}">Fazer diagnóstico gratuito</a>
+    <a class="btn btn-grande" href="{% url 'publico:jornada' %}">Ver a jornada do túnel</a>
+  </div>
+  <p class="garantias">Resposta humana com prazo definido · Sigilo · Sem julgamento</p>
+</section>
+
+<section class="site-secao clara">
+  <div class="interno">
+    <h2 class="titulo-secao">Como funciona</h2>
+    <p class="subtitulo-secao">Três etapas, zero surpresa — você sabe o que acontece em cada momento.</p>
+    <div class="passos">
+      {% for passo in como_funciona %}
+      <article class="passo">
+        <div class="numero">{{ passo.numero }}</div>
+        <h3>{{ passo.titulo }}</h3>
+        <p>{{ passo.desc }}</p>
+      </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="site-secao">
+  <div class="grade grade-2-1">
+    <div>
+      <h2 class="titulo-secao">Transparência como produto</h2>
+      <p class="subtitulo-secao">Na área do cliente você vê a situação de cada credor, os prazos do
+        processo, os documentos e a linha do tempo completa. Tudo com data, sem precisar ligar
+        para saber como está.</p>
+      <a class="btn" href="{% url 'accounts:login' %}">Acessar área do cliente</a>
+    </div>
+    <div class="cartao"><div class="cartao-corpo">
+      <div class="sobretitulo">O que você acompanha</div>
+      <ul class="lista" style="margin-top:10px">
+        <li>Etapa atual do processo e o que vem a seguir</li>
+        <li>Prazos com data e base legal</li>
+        <li>Movimentações do tribunal, em português</li>
+        <li>Documentos organizados por categoria</li>
+      </ul>
+    </div></div>
+  </div>
+</section>
+
+<section class="site-secao">
+  <div class="chamada-final">
+    <h2>Pronto para dar o primeiro passo?</h2>
+    <p>O diagnóstico é gratuito, anônimo e leva menos de 3 minutos.</p>
+    <a class="btn btn-primario btn-grande" href="{% url 'publico:quiz' %}">Fazer diagnóstico agora</a>
+  </div>
+</section>
+{% endblock %}

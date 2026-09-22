@@ -1,20 +1,20 @@
 {% load rj_extras %}
-<tr id="prazo-{{ prazo.pk }}" class="hover:bg-slate-50">
-  <td class="px-5 py-3">
-    <p class="font-medium">{{ prazo.titulo }}</p>
-    <p class="text-xs text-slate-500">{{ prazo.base_legal|default:"controle interno" }}</p>
+<tr id="prazo-{{ prazo.pk }}">
+  <td>
+    <div class="principal" style="font-size:14px;font-family:var(--sans);font-weight:500">{{ prazo.titulo }}</div>
+    <div class="apoio">{{ prazo.base_legal|default:"controle interno" }}</div>
   </td>
-  <td class="px-5 py-3 text-sm">{{ prazo.data_inicio|date:"d/m/Y"|default:"-" }}</td>
-  <td class="px-5 py-3 text-sm">
-    <span class="rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset {{ prazo.cor|badge_cor }}">
-      {{ prazo.data_fim|date:"d/m/Y" }}{% if prazo.status == 'PEND' %} &middot; {{ prazo.dias_restantes }}d{% endif %}
+  <td class="num texto-suave">{{ prazo.data_inicio|date:"d/m/Y"|default:"—" }}</td>
+  <td>
+    <span class="etiqueta {{ prazo.cor|badge_cor }} num">
+      {{ prazo.data_fim|date:"d/m/Y" }}{% if prazo.status == 'PEND' %}{% if prazo.atrasado %} · {{ prazo.dias_atraso }}d atrasado{% else %} · {{ prazo.dias_restantes }}d{% endif %}{% endif %}
     </span>
   </td>
-  <td class="px-5 py-3 text-sm">{{ prazo.responsavel|default:"-" }}</td>
-  <td class="px-5 py-3 text-sm">{{ prazo.get_status_display }}</td>
-  <td class="px-5 py-3 text-right">
+  <td class="texto-suave">{{ prazo.responsavel|default:"—" }}</td>
+  <td class="texto-suave">{{ prazo.get_status_display }}</td>
+  <td class="direita">
     {% if prazo.status == 'PEND' %}
-    <button class="rounded bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-emerald-700"
+    <button class="btn btn-p" type="button"
             hx-post="{% url 'processos:prazo_concluir' prazo.pk %}"
             hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
             hx-target="#prazo-{{ prazo.pk }}" hx-swap="outerHTML">cumprido</button>

@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% load rj_extras %}
+{% block titulo %}Relacionamento - {{ processo.empresa }}{% endblock %}
+{% block conteudo %}
+<a class="voltar" href="{{ processo.get_absolute_url }}">← voltar ao processo</a>
+
+<div class="cabecalho topo">
+  <div>
+    <div class="sobretitulo">Relacionamento com o cliente</div>
+    <h1>{{ processo.empresa }}</h1>
+    <div class="texto-fraco num">{{ processo.numero_formatado }}</div>
+  </div>
+</div>
+
+<div class="grade grade-2-1">
+  <div>
+    <section class="cartao">
+      <header class="cartao-cab"><h2>Documentos solicitados</h2></header>
+      <ul class="lista">
+        {% for pedido in solicitacoes %}
+        <li>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <div style="min-width:220px;flex:1">
+              <div style="font-weight:500">
+                {% if pedido.arquivo %}<a href="{{ pedido.arquivo.url }}" target="_blank" rel="noopener">{{ pedido.titulo }}</a>{% else %}{{ pedido.titulo }}{% endif %}
+              </div>
+              <div class="texto-fraco">{{ pedido.motivo }}</div>
+              <div style="margin-top:6px">
+                <span class="etiqueta {{ pedido.cor|badge_cor }}">{{ pedido.get_status_display }}</span>
+                {% if pedido.prazo %}<span class="texto-fraco num {% if pedido.atrasado %}destaque-alerta{% endif %}">prazo {{ pedido.prazo|date:"d/m/Y" }}</span>{% endif %}
+                {% if pedido.enviado_em %}<span class="texto-fraco num">· enviado {{ pedido.enviado_em|date:"d/m/Y" }}</span>{% endif %}
+              </div>
+            </div>
+            {% if pedido.arquivo %}
+            <form method="post" action="{% url 'relacionamento:documento_conferir' pedido.pk %}" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              {% csrf_token %}
+              <select name="status" style="max-width:190px">
+                <option value="REC" {% if pedido.status == 'REC' %}selected{% endif %}>Em conferência</option>
+                <option value="VAL" {% if pedido.status == 'VAL' %}selected{% endif %}>Validado</option>
+                <option value="RECU" {% if pedido.status == 'RECU' %}selected{% endif %}>Precisa reenviar</option>
+              </select>
+              <input type="text" name="observacao_equipe" value="{{ pedido.observacao_equipe }}" placeholder="observação" style="max-width:200px">
+              <button class="btn btn-p" type="submit">salvar</button>
+            </form>
+            {% endif %}
+          </div>
+        </li>
+        {% empty %}
+        <li class="vazio">Nenhum documento solicitado.</li>
+        {% endfor %}
+      </ul>
+      <div class="cartao-rodape">
+        <details {% if form_solicitacao.errors %}open{% endif %}>
+          <summary>Solicitar documento</summary>
+          <form method="post" action="{% url 'relacionamento:documento_solicitar' processo.pk %}">
+            {% csrf_token %}
+            {% include "partials/form_grid.html" with form=form_solicitacao %}
+            <div class="form-acoes"><button class="btn" type="submit">Solicitar</button></div>
+          </form>
+        </details>
+      </div>
+    </section>
+
+    <section class="cartao">
+      <header class="cartao-cab"><h2>Conversa</h2></header>
+      {% if mensagens %}
+      <div class="conversa">
+        {% for mensagem in mensagens %}
+        <div class="balao {% if mensagem.da_equipe %}minha{% else %}deles{% endif %}">
+          <div class="quem">{{ mensagem.autor.get_full_name|default:mensagem.autor.username }} · {{ mensagem.criado_em|date:"d/m/Y H:i" }}</div>
+          <div class="texto">{{ mensagem.texto }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="vazio">Nenhuma mensagem trocada.</div>
+      {% endif %}
+      <div class="cartao-rodape">
+        <form method="post" action="{% url 'relacionamento:responder' processo.pk %}">
+          {% csrf_token %}
+          {% include "partials/form_grid.html" with form=form_mensagem %}
+          <div class="form-acoes"><button class="btn btn-primario" type="submit">Responder</button></div>
+        </form>
+      </div>
+    </section>
+
+    <section class="cartao">
+      <header class="cartao-cab"><h2>Negociação com credores</h2></header>
+      <ul class="lista">
+        {% for credor in credores %}
+        <li>
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+            <span style="font-weight:500">{{ credor.nome }}</span>
+            <span class="etiqueta {{ credor.cor_negociacao|badge_cor }}">{{ credor.get_estagio_negociacao_display }}</span>
+          </div>
+          <div class="texto-fraco num">
+            {{ credor.valor_arrolado|moeda }}{% if credor.valor_negociado is not None %} → {{ credor.valor_negociado|moeda }} · economia {{ credor.economia|moeda }}{% endif %}
+          </div>
+          <details>
+            <summary>Registrar passo da negociação</summary>
+            <form method="post" action="{% url 'relacionamento:credor_evento' credor.pk %}">
+              {% csrf_token %}
+              <div class="campos">
+                <div class="campo">
+                  <label>O que aconteceu</label>
+                  <input type="text" name="descricao" placeholder="Proposta enviada — 26% de desconto, 18x">
+                </div>
+                <div class="campo">
+                  <label>Estágio</label>
+                  <select name="estagio_negociacao">
+                    <option value="NAO" {% if credor.estagio_negociacao == 'NAO' %}selected{% endif %}>Não iniciada</option>
+                    <option value="LEV" {% if credor.estagio_negociacao == 'LEV' %}selected{% endif %}>Levantamento</option>
+                    <option value="NEG" {% if credor.estagio_negociacao == 'NEG' %}selected{% endif %}>Em negociação</option>
+                    <option value="PROP" {% if credor.estagio_negociacao == 'PROP' %}selected{% endif %}>Proposta enviada</option>
+                    <option value="ACOR" {% if credor.estagio_negociacao == 'ACOR' %}selected{% endif %}>Acordo fechado</option>
+                    <option value="JUD" {% if credor.estagio_negociacao == 'JUD' %}selected{% endif %}>Discussão judicial</option>
+                  </select>
+                </div>
+                <div class="campo">
+                  <label>Valor negociado</label>
+                  <input type="text" name="valor_negociado" placeholder="346.000,00">
+                </div>
+              </div>
+              <div class="form-acoes"><button class="btn btn-p" type="submit">Salvar</button></div>
+            </form>
+          </details>
+          {% if credor.eventos.all %}
+          <ul class="historico" style="list-style:none;padding:0;margin:8px 0 0">
+            {% for evento in credor.eventos.all|slice:":3" %}
+            <li class="texto-fraco num" style="padding:2px 0">{{ evento.data|date:"d/m/Y" }} — {{ evento.descricao }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+        </li>
+        {% empty %}
+        <li class="vazio">Nenhum credor cadastrado ainda.</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+
+  <aside>
+    <section class="cartao">
+      <header class="cartao-cab"><h2>Reuniões</h2></header>
+      <ul class="lista">
+        {% for reuniao in reunioes %}
+        <li>
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+            <span style="font-weight:500">{{ reuniao.titulo }}</span>
+            <span class="texto-fraco num">{{ reuniao.quando|date:"d/m H:i" }}</span>
+          </div>
+          <span class="etiqueta {{ reuniao.cor|badge_cor }}">{{ reuniao.get_status_display }}</span>
+          {% if not reuniao.visivel_cliente %}<span class="texto-fraco">· interna</span>{% endif %}
+        </li>
+        {% empty %}
+        <li class="vazio">Nenhuma reunião registrada.</li>
+        {% endfor %}
+      </ul>
+      <div class="cartao-rodape">
+        <details {% if form_reuniao.errors %}open{% endif %}>
+          <summary>Registrar reunião</summary>
+          <form method="post" action="{% url 'relacionamento:reuniao_nova' processo.pk %}">
+            {% csrf_token %}
+            {% include "partials/form_grid.html" with form=form_reuniao %}
+            <div class="form-acoes"><button class="btn" type="submit">Salvar</button></div>
+          </form>
+        </details>
+      </div>
+    </section>
+  </aside>
+</div>
+{% endblock %}

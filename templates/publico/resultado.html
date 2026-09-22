@@ -1,0 +1,44 @@
+{% extends "publico/base_site.html" %}
+{% load rj_extras %}
+{% block titulo %}Resultado do diagnóstico — {{ APP_NOME }}{% endblock %}
+{% block conteudo_site %}
+<section class="site-secao">
+  <div class="quiz">
+    <div class="resultado-cabeca">
+      <span class="etiqueta {{ diagnostico.cor|badge_cor }}">{{ diagnostico.get_urgencia_display }}</span>
+      <h1>{{ titulo_resultado }}</h1>
+      <p>{{ mensagem_resultado }}</p>
+      <div class="prazo-retorno">Retorno humano em até {{ prazo }}</div>
+
+      <div class="respostas-lista">
+        {% for item in diagnostico.respostas %}
+        <span class="item">{{ item.resposta }}</span>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if ja_enviou %}
+    <div class="cartao" style="margin-top:18px"><div class="cartao-corpo">
+      <h2 style="font-size:17px">Recebemos seu contato</h2>
+      <p class="texto-suave">Vamos falar com você em até {{ prazo }}. Se preferir adiantar,
+         responda ao e-mail que enviaremos com os documentos que costumamos pedir.</p>
+      <a class="btn" href="{% url 'core:home' %}">Voltar ao início</a>
+    </div></div>
+    {% else %}
+    <div class="cartao" style="margin-top:18px"><div class="cartao-corpo">
+      <h2 style="font-size:17px">Para onde retornamos?</h2>
+      <p class="texto-suave">Seu diagnóstico já está registrado. Deixe um contato para a nossa
+         equipe falar com você dentro do prazo acima.</p>
+      <form method="post">
+        {% csrf_token %}
+        {% include "partials/form_grid.html" with form=form %}
+        <div class="form-acoes">
+          <button class="btn btn-primario" type="submit">Quero ser contatado</button>
+          <a class="btn-texto" href="{% url 'publico:quiz' %}?reiniciar=1">refazer diagnóstico</a>
+        </div>
+      </form>
+    </div></div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

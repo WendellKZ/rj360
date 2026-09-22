@@ -12,6 +12,7 @@ from .models import Empresa
 class EmpresaListView(EquipeInternaMixin, ListView):
     model = Empresa
     template_name = "empresas/lista.html"
+    extra_context = {"secao": "empresas"}
     context_object_name = "empresas"
     paginate_by = 25
 
@@ -43,6 +44,7 @@ class EmpresaListView(EquipeInternaMixin, ListView):
 class EmpresaDetailView(EquipeInternaMixin, DetailView):
     model = Empresa
     template_name = "empresas/detalhe.html"
+    extra_context = {"secao": "empresas"}
     context_object_name = "empresa"
 
     def get_context_data(self, **kwargs):
@@ -72,6 +74,7 @@ class EmpresaCreateView(EquipeInternaMixin, CreateView):
     model = Empresa
     form_class = EmpresaForm
     template_name = "empresas/form.html"
+    extra_context = {"secao": "empresas"}
 
     def form_valid(self, form):
         messages.success(self.request, "Empresa cadastrada.")
@@ -82,6 +85,7 @@ class EmpresaUpdateView(EquipeInternaMixin, UpdateView):
     model = Empresa
     form_class = EmpresaForm
     template_name = "empresas/form.html"
+    extra_context = {"secao": "empresas"}
 
     def form_valid(self, form):
         messages.success(self.request, "Empresa atualizada.")

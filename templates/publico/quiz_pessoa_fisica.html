@@ -1,0 +1,18 @@
+{% extends "publico/base_site.html" %}
+{% block titulo %}Diagnóstico — {{ APP_NOME }}{% endblock %}
+{% block conteudo_site %}
+<section class="site-secao">
+  <div class="quiz">
+    <div class="resultado-cabeca">
+      <span class="etiqueta etiqueta--cinza">Fora do nosso escopo</span>
+      <h1>Entendemos sua situação</h1>
+      <p>Nosso trabalho é com dívidas de empresas (CNPJ). Se o seu caso mistura empresa e pessoal
+         — o que é muito comum — vale refazer o diagnóstico marcando a opção “mista”.</p>
+      <div class="acoes" style="margin-top:20px">
+        <a class="btn btn-primario" href="{% url 'publico:quiz' %}?reiniciar=1">Meu caso mistura empresa e pessoal</a>
+        <a class="btn" href="{% url 'core:home' %}">Voltar ao início</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

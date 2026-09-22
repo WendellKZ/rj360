@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block titulo %}Conversa - {{ APP_NOME }}{% endblock %}
+{% block conteudo_cliente %}
+<div class="cabecalho">
+  <div>
+    <div class="sobretitulo">Portal do cliente</div>
+    <h1>Conversa com a equipe</h1>
+    <p class="subtitulo">Dúvidas sobre o processo, documentos ou prazos — tudo registrado aqui.</p>
+  </div>
+</div>
+
+<section class="cartao">
+  {% if mensagens %}
+  <div class="conversa">
+    {% for mensagem in mensagens %}
+    <div class="balao {% if mensagem.da_equipe %}deles{% else %}minha{% endif %}">
+      <div class="quem">{{ mensagem.autor.get_full_name|default:mensagem.autor.username }} · {{ mensagem.criado_em|date:"d/m/Y H:i" }}</div>
+      <div class="texto">{{ mensagem.texto }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="vazio">Nenhuma mensagem ainda. Pode escrever — a equipe responde por aqui.</div>
+  {% endif %}
+
+  <div class="cartao-rodape">
+    <form method="post">
+      {% csrf_token %}
+      {% include "partials/form_grid.html" with form=form %}
+      <div class="form-acoes"><button class="btn btn-primario" type="submit">Enviar mensagem</button></div>
+    </form>
+  </div>
+</section>
+{% endblock %}

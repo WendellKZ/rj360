@@ -1,0 +1,30 @@
+{% extends "publico/base_site.html" %}
+{% block titulo %}A jornada do túnel — {{ APP_NOME }}{% endblock %}
+{% block conteudo_site %}
+<section class="site-secao">
+  <h1 class="titulo-secao" style="font-size:34px">A jornada do túnel</h1>
+  <p class="subtitulo-secao">Do primeiro contato até a luz no fim do túnel: seis etapas, com dia e
+    duração. Previsibilidade, não promessa.</p>
+
+  <div class="etapas-jornada">
+    {% for etapa in etapas %}
+    <article class="etapa-jornada">
+      <div class="cabeca">
+        <span class="dia">{{ etapa.dia }}</span>
+        {% if etapa.duracao %}<span class="duracao">{{ etapa.duracao }}</span>{% endif %}
+      </div>
+      <h3>{{ etapa.titulo }}</h3>
+      <p>{{ etapa.desc }}</p>
+      <div class="respiro"><strong>Seu respiro</strong>{{ etapa.respiro }}</div>
+    </article>
+    {% endfor %}
+    <div class="luz-final">Luz no fim do túnel</div>
+  </div>
+
+  <div class="chamada-final" style="margin-top:34px">
+    <h2>Pronto para começar a sua?</h2>
+    <p>O diagnóstico é gratuito e leva menos de 3 minutos.</p>
+    <a class="btn btn-primario btn-grande" href="{% url 'publico:quiz' %}">Fazer diagnóstico agora</a>
+  </div>
+</section>
+{% endblock %}

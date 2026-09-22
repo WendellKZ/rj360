@@ -1,126 +1,126 @@
 {% extends "base.html" %}
-{% load rj_extras humanize %}
+{% load rj_extras %}
 {% block titulo %}Painel - {{ APP_NOME }}{% endblock %}
 {% block conteudo %}
-<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+<div class="cabecalho">
   <div>
-    <h1 class="text-2xl font-semibold tracking-tight">Painel</h1>
-    <p class="text-sm text-slate-500">Visao geral das recuperacoes judiciais em acompanhamento.</p>
+    <div class="sobretitulo">Painel interno</div>
+    <h1>Visão geral</h1>
   </div>
-  <div class="flex gap-2 text-sm">
-    <a href="{% url 'processos:novo' %}" class="rounded-md bg-emerald-600 px-3 py-2 font-medium text-white hover:bg-emerald-700">Novo processo</a>
-    <a href="{% url 'crm:novo' %}" class="rounded-md bg-white px-3 py-2 font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50">Novo lead</a>
-  </div>
-</div>
-
-<div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-  <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-    <p class="text-xs uppercase tracking-wide text-slate-500">Clientes ativos</p>
-    <p class="mt-2 text-3xl font-semibold">{{ total_clientes }}</p>
-  </div>
-  <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-    <p class="text-xs uppercase tracking-wide text-slate-500">Processos em curso</p>
-    <p class="mt-2 text-3xl font-semibold">{{ total_processos }}</p>
-  </div>
-  <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-    <p class="text-xs uppercase tracking-wide text-slate-500">Prazos atrasados</p>
-    <p class="mt-2 text-3xl font-semibold {% if total_prazos_atrasados %}text-rose-600{% endif %}">{{ total_prazos_atrasados }}</p>
-  </div>
-  <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-    <p class="text-xs uppercase tracking-wide text-slate-500">Funil em aberto</p>
-    <p class="mt-2 text-3xl font-semibold">{{ total_leads }}</p>
-    <p class="text-xs text-slate-500">{{ pipeline_valor|moeda }}</p>
+  <div class="acoes">
+    <a class="btn btn-primario" href="{% url 'processos:novo' %}">Novo processo</a>
+    <a class="btn" href="{% url 'crm:novo' %}">Novo lead</a>
   </div>
 </div>
 
-<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-  <section class="lg:col-span-2 rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
-    <header class="flex items-center justify-between border-b border-slate-200 px-5 py-3">
-      <h2 class="font-semibold">Prazos criticos</h2>
-      <a class="text-sm text-emerald-700 hover:underline" href="{% url 'processos:agenda' %}">ver agenda</a>
+<div class="kpis">
+  <div class="kpi">
+    <div class="rotulo">Clientes ativos</div>
+    <div class="valor">{{ total_clientes }}</div>
+  </div>
+  <div class="kpi">
+    <div class="rotulo">Processos em curso</div>
+    <div class="valor">{{ total_processos }}</div>
+  </div>
+  <div class="kpi">
+    <div class="rotulo">Prazos atrasados</div>
+    <div class="valor {% if total_prazos_atrasados %}alerta{% endif %}">{{ total_prazos_atrasados }}</div>
+    <div class="sub">de {{ prazos_criticos|length }} em alerta</div>
+  </div>
+  <div class="kpi">
+    <div class="rotulo">Funil em aberto</div>
+    <div class="valor">{{ total_leads }}</div>
+    <div class="sub">{{ pipeline_valor|moeda }}</div>
+  </div>
+</div>
+
+<div class="grade grade-2-1">
+  <section class="cartao">
+    <header class="cartao-cab">
+      <h2>Prazos críticos</h2>
+      <a href="{% url 'processos:agenda' %}">ver agenda</a>
     </header>
-    <div class="divide-y divide-slate-100">
+    <ul class="lista">
       {% for prazo in prazos_criticos %}
-      <div class="flex items-center justify-between gap-4 px-5 py-3">
-        <div class="min-w-0">
-          <a class="truncate font-medium hover:underline" href="{{ prazo.processo.get_absolute_url }}">{{ prazo.titulo }}</a>
-          <p class="truncate text-xs text-slate-500">{{ prazo.processo.empresa }} &middot; {{ prazo.base_legal|default:"prazo interno" }}</p>
+      <li style="display:flex;align-items:center;justify-content:space-between;gap:14px">
+        <div style="min-width:0">
+          <a class="titulo" href="{{ prazo.processo.get_absolute_url }}">{{ prazo.titulo }}</a>
+          <div class="texto-fraco">{{ prazo.processo.empresa }} · {{ prazo.base_legal|default:"controle interno" }}</div>
         </div>
-        <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset {{ prazo.cor|badge_cor }}">
-          {{ prazo.data_fim|date:"d/m/Y" }}
-          {% if prazo.atrasado %}&middot; atrasado{% else %}&middot; {{ prazo.dias_restantes }}d{% endif %}
+        <span class="etiqueta {{ prazo.cor|badge_cor }} num">
+          {{ prazo.data_fim|date:"d/m/Y" }}{% if prazo.atrasado %} · {{ prazo.dias_atraso }}d atrasado{% else %} · {{ prazo.dias_restantes }}d{% endif %}
         </span>
-      </div>
-      {% empty %}
-      <p class="px-5 py-8 text-center text-sm text-slate-500">Nenhum prazo critico nos proximos dias.</p>
-      {% endfor %}
-    </div>
-  </section>
-
-  <section class="rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
-    <header class="border-b border-slate-200 px-5 py-3"><h2 class="font-semibold">Processos por fase</h2></header>
-    <ul class="divide-y divide-slate-100">
-      {% for item in por_fase %}
-      <li class="flex items-center justify-between px-5 py-2.5 text-sm">
-        <span class="rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset {{ item.cor|badge_cor }}">{{ item.rotulo }}</span>
-        <span class="font-semibold">{{ item.total }}</span>
       </li>
       {% empty %}
-      <li class="px-5 py-6 text-center text-sm text-slate-500">Nenhum processo cadastrado.</li>
+      <li class="vazio">Nenhum prazo crítico nos próximos dias.</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="cartao">
+    <header class="cartao-cab"><h2>Processos por fase</h2></header>
+    <ul class="lista">
+      {% for item in por_fase %}
+      <li style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <span class="etiqueta {{ item.cor|badge_cor }}">{{ item.rotulo }}</span>
+        <span class="serif" style="font-size:18px">{{ item.total }}</span>
+      </li>
+      {% empty %}
+      <li class="vazio">Nenhum processo cadastrado.</li>
       {% endfor %}
     </ul>
   </section>
 </div>
 
-<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-  <section class="rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
-    <header class="border-b border-slate-200 px-5 py-3"><h2 class="font-semibold">Stay period proximo do fim</h2></header>
-    <ul class="divide-y divide-slate-100">
+<div class="grade grade-3" style="margin-top:18px">
+  <section class="cartao">
+    <header class="cartao-cab"><h2>Stay period no fim</h2></header>
+    <ul class="lista">
       {% for processo in processos_stay %}
-      <li class="px-5 py-3 text-sm">
-        <a class="font-medium hover:underline" href="{{ processo.get_absolute_url }}">{{ processo.empresa }}</a>
-        <p class="text-xs text-slate-500">
-          termina em {{ processo.stay_period_fim|date:"d/m/Y" }} ({{ processo.stay_dias_restantes }} dias)
-          {% if processo.stay_prorrogado %}&middot; ja prorrogado{% endif %}
-        </p>
+      <li>
+        <a class="titulo" href="{{ processo.get_absolute_url }}">{{ processo.empresa }}</a>
+        <div class="texto-fraco num">
+          termina em {{ processo.stay_period_fim|date:"d/m/Y" }} · {{ processo.stay_dias_restantes }} dias
+          {% if processo.stay_prorrogado %} · já prorrogado{% endif %}
+        </div>
       </li>
       {% empty %}
-      <li class="px-5 py-6 text-center text-sm text-slate-500">Nada nos proximos 60 dias.</li>
+      <li class="vazio">Nada nos próximos 60 dias.</li>
       {% endfor %}
     </ul>
   </section>
 
-  <section class="rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
-    <header class="border-b border-slate-200 px-5 py-3"><h2 class="font-semibold">Proximas assembleias</h2></header>
-    <ul class="divide-y divide-slate-100">
+  <section class="cartao">
+    <header class="cartao-cab"><h2>Próximas assembleias</h2></header>
+    <ul class="lista">
       {% for processo in proximas_agc %}
-      <li class="px-5 py-3 text-sm">
-        <a class="font-medium hover:underline" href="{{ processo.get_absolute_url }}">{{ processo.empresa }}</a>
-        <p class="text-xs text-slate-500">AGC em {{ processo.data_agc|date:"d/m/Y" }}</p>
+      <li>
+        <a class="titulo" href="{{ processo.get_absolute_url }}">{{ processo.empresa }}</a>
+        <div class="texto-fraco num">AGC em {{ processo.data_agc|date:"d/m/Y" }}</div>
       </li>
       {% empty %}
-      <li class="px-5 py-6 text-center text-sm text-slate-500">Nenhuma AGC agendada.</li>
+      <li class="vazio">Nenhuma AGC agendada.</li>
       {% endfor %}
     </ul>
   </section>
 
-  <section class="rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
-    <header class="flex items-center justify-between border-b border-slate-200 px-5 py-3">
-      <h2 class="font-semibold">Funil</h2>
-      <a class="text-sm text-emerald-700 hover:underline" href="{% url 'crm:funil' %}">abrir</a>
+  <section class="cartao">
+    <header class="cartao-cab">
+      <h2>Funil</h2>
+      <a href="{% url 'crm:funil' %}">abrir</a>
     </header>
-    <ul class="divide-y divide-slate-100">
+    <ul class="lista">
       {% for item in leads_por_estagio %}
-      <li class="flex items-center justify-between px-5 py-2.5 text-sm">
-        <span>{{ item.rotulo }}</span><span class="font-semibold">{{ item.total }}</span>
+      <li style="display:flex;align-items:center;justify-content:space-between">
+        <span>{{ item.rotulo }}</span><span class="serif" style="font-size:16px">{{ item.total }}</span>
       </li>
       {% endfor %}
     </ul>
     {% if leads_atrasados %}
-    <div class="border-t border-slate-200 px-5 py-3">
-      <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-rose-600">Contatos atrasados</p>
+    <div class="cartao-rodape">
+      <div class="sobretitulo destaque-alerta" style="margin-bottom:6px">Contatos atrasados</div>
       {% for lead in leads_atrasados %}
-      <a class="block truncate text-sm hover:underline" href="{{ lead.get_absolute_url }}">{{ lead }} &middot; {{ lead.proximo_contato|date:"d/m" }}</a>
+        <div><a href="{{ lead.get_absolute_url }}">{{ lead }}</a> <span class="texto-fraco">· {{ lead.proximo_contato|date:"d/m" }}</span></div>
       {% endfor %}
     </div>
     {% endif %}
@@ -128,11 +128,9 @@
 </div>
 
 {% if empresas_sem_processo %}
-<div class="mt-6 rounded-xl bg-amber-50 p-5 ring-1 ring-amber-200">
-  <p class="text-sm font-medium text-amber-900">Clientes sem processo ativo cadastrado</p>
-  <p class="mt-1 text-sm text-amber-800">
-    {% for empresa in empresas_sem_processo %}<a class="underline" href="{{ empresa.get_absolute_url }}">{{ empresa }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}
-  </p>
+<div class="aviso aviso--warning" style="margin-top:18px">
+  <strong>Clientes sem processo ativo:</strong>
+  {% for empresa in empresas_sem_processo %}<a href="{{ empresa.get_absolute_url }}">{{ empresa }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}
 </div>
 {% endif %}
 {% endblock %}

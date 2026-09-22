@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load rj_extras %}
+{% block titulo %}Reuniões - {{ APP_NOME }}{% endblock %}
+{% block conteudo_cliente %}
+<div class="cabecalho">
+  <div>
+    <div class="sobretitulo">Portal do cliente</div>
+    <h1>Reuniões</h1>
+    <p class="subtitulo">O que está marcado e o que ficou decidido nos encontros anteriores.</p>
+  </div>
+</div>
+
+<section class="cartao">
+  <header class="cartao-cab"><h2>Próximas</h2></header>
+  <ul class="lista">
+    {% for reuniao in proximas %}
+    <li>
+      <div class="reuniao">
+        <div class="quando-bloco">
+          <div class="dia">{{ reuniao.quando|date:"d" }}</div>
+          <div class="mes">{{ reuniao.quando|date:"M" }}</div>
+        </div>
+        <div class="corpo">
+          <div style="font-weight:500">{{ reuniao.titulo }}</div>
+          <div class="texto-fraco num">{{ reuniao.quando|date:"l, d/m/Y \à\s H:i" }} · {{ reuniao.duracao_minutos }} min</div>
+          {% if reuniao.local %}<div class="texto-suave">{{ reuniao.local }}</div>{% endif %}
+          {% if reuniao.participantes %}<div class="texto-fraco">com {{ reuniao.participantes }}</div>{% endif %}
+          {% if reuniao.pauta %}<div class="texto-suave" style="margin-top:6px;white-space:pre-line">{{ reuniao.pauta }}</div>{% endif %}
+        </div>
+      </div>
+    </li>
+    {% empty %}
+    <li class="vazio">Nenhuma reunião marcada.</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="cartao">
+  <header class="cartao-cab"><h2>Anteriores</h2></header>
+  <ul class="lista">
+    {% for reuniao in anteriores %}
+    <li>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+        <span style="font-weight:500">{{ reuniao.titulo }}</span>
+        <span class="texto-fraco num">{{ reuniao.quando|date:"d/m/Y H:i" }}</span>
+      </div>
+      <span class="etiqueta {{ reuniao.cor|badge_cor }}">{{ reuniao.get_status_display }}</span>
+      {% if reuniao.ata %}<div class="texto-suave" style="margin-top:8px;white-space:pre-line">{{ reuniao.ata }}</div>{% endif %}
+    </li>
+    {% empty %}
+    <li class="vazio">Ainda não houve reuniões registradas.</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

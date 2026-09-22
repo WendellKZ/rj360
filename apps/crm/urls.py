@@ -6,6 +6,9 @@ app_name = "crm"
 
 urlpatterns = [
     path("", views.FunilView.as_view(), name="funil"),
+    path("diagnosticos/", views.DiagnosticosView.as_view(), name="diagnosticos"),
+    path("diagnosticos/<int:pk>/lead/", views.CriarLeadDoDiagnosticoView.as_view(), name="diagnostico_lead"),
+    path("diagnosticos/<int:pk>/contato/", views.MarcarContatoDiagnosticoView.as_view(), name="diagnostico_contato"),
     path("leads/", views.LeadListView.as_view(), name="lista"),
     path("leads/novo/", views.LeadCreateView.as_view(), name="novo"),
     path("leads/<int:pk>/", views.LeadDetailView.as_view(), name="detalhe"),

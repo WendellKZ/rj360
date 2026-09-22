@@ -1,15 +1,21 @@
 {% extends "base.html" %}
 {% block titulo %}{% if object %}Editar empresa{% else %}Nova empresa{% endif %}{% endblock %}
 {% block conteudo %}
-<div class="mx-auto max-w-4xl rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-  <h1 class="mb-5 text-xl font-semibold">{% if object %}Editar {{ object }}{% else %}Nova empresa{% endif %}</h1>
-  <form method="post" class="space-y-5">
+<a class="voltar" href="{% url 'empresas:lista' %}">← Empresas</a>
+<div class="cabecalho">
+  <div>
+    <div class="sobretitulo">Painel interno</div>
+    <h1>{% if object %}Editar {{ object }}{% else %}Nova empresa{% endif %}</h1>
+  </div>
+</div>
+<div class="cartao"><div class="cartao-corpo">
+  <form method="post">
     {% csrf_token %}
     {% include "partials/form_grid.html" with form=form %}
-    <div class="flex gap-2">
-      <button class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Salvar</button>
-      <a href="{% url 'empresas:lista' %}" class="rounded-md px-4 py-2 text-sm text-slate-600 hover:bg-slate-100">Cancelar</a>
+    <div class="form-acoes">
+      <button class="btn btn-primario" type="submit">Salvar</button>
+      <a class="btn-texto" href="{% url 'empresas:lista' %}">Cancelar</a>
     </div>
   </form>
-</div>
+</div></div>
 {% endblock %}

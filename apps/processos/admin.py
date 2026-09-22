@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Andamento, Credor, Documento, Parcela, Prazo, ProcessoRJ
+from .models import Andamento, Credor, Documento, ImportacaoCredores, Parcela, Prazo, ProcessoRJ
 
 
 class AndamentoInline(admin.TabularInline):
@@ -88,3 +88,21 @@ class ParcelaAdmin(admin.ModelAdmin):
     search_fields = ("descricao", "processo__numero_cnj")
     autocomplete_fields = ("processo",)
     date_hierarchy = "vencimento"
+
+
+@admin.register(ImportacaoCredores)
+class ImportacaoCredoresAdmin(admin.ModelAdmin):
+    list_display = (
+        "criado_em", "processo", "status", "linhas_lidas",
+        "criados", "atualizados", "ignorados", "enviado_por",
+    )
+    list_filter = ("status",)
+    search_fields = ("processo__numero_cnj", "mensagem")
+    autocomplete_fields = ("processo",)
+    readonly_fields = (
+        "processo", "arquivo", "enviado_por", "status", "linhas_lidas",
+        "linhas_validas", "criados", "atualizados", "ignorados", "mensagem",
+    )
+
+    def has_add_permission(self, request):
+        return False

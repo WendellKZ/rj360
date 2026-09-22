@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load rj_extras %}
+{% block titulo %}Importar credores - {{ APP_NOME }}{% endblock %}
+{% block conteudo %}
+<a class="voltar" href="{{ processo.get_absolute_url }}">← voltar ao processo</a>
+
+<div class="cabecalho">
+  <div>
+    <div class="sobretitulo">Quadro de credores</div>
+    <h1>Importar planilha</h1>
+    <p class="subtitulo">{{ processo.empresa }} · <span class="num">{{ processo.numero_formatado }}</span></p>
+  </div>
+</div>
+
+{% if not resultado %}
+<div class="grade grade-2-1">
+  <section class="cartao"><div class="cartao-corpo">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      {% include "partials/form_grid.html" with form=form %}
+      <div class="form-acoes">
+        <button class="btn btn-primario" type="submit">Ler planilha</button>
+        <span class="texto-fraco">Nada é gravado agora: você confere a prévia antes.</span>
+      </div>
+    </form>
+  </div></section>
+  <aside class="cartao"><div class="cartao-corpo">
+    <h2 style="font-size:15px;margin-bottom:8px">Formato esperado</h2>
+    <p class="texto-suave">Colunas obrigatórias: <strong>Credor</strong>, <strong>Classe</strong> e <strong>Valor</strong>.
+      Opcionais: CPF/CNPJ, Valor habilitado, Situação, Sujeito a RJ, Observações.</p>
+    <p class="texto-suave">A ordem não importa e colunas a mais são ignoradas. A classe aceita
+      I, II, III, IV ou o nome (trabalhista, garantia real, quirografário, ME/EPP).</p>
+    <a class="btn btn-escuro" style="margin-top:12px" href="{% url 'processos:credores_modelo' %}">Baixar planilha modelo</a>
+  </div></aside>
+</div>
+{% else %}
+
+<div class="kpis">
+  <div class="kpi"><div class="rotulo">Linhas lidas</div><div class="valor">{{ resultado.linhas|length }}</div></div>
+  <div class="kpi"><div class="rotulo">Prontas para importar</div><div class="valor positivo">{{ resultado.validas|length }}</div></div>
+  <div class="kpi"><div class="rotulo">Com problema</div><div class="valor {% if resultado.invalidas %}alerta{% endif %}">{{ resultado.invalidas|length }}</div></div>
+  <div class="kpi"><div class="rotulo">Total arrolado</div><div class="valor num" style="font-size:22px">{{ resultado.total_valor|moeda }}</div></div>
+</div>
+
+{% if resultado.invalidas %}
+<section class="cartao" style="border-color:var(--vermelho-linha)">
+  <header class="cartao-cab" style="background:var(--vermelho-bg);border-color:var(--vermelho-linha)">
+    <div>
+      <h2 style="color:var(--vermelho-cor)">Linhas com problema ({{ resultado.invalidas|length }})</h2>
+      <div class="texto-fraco" style="color:var(--vermelho-cor)">Não serão importadas. Corrija a planilha e envie de novo, ou siga sem elas.</div>
+    </div>
+  </header>
+  <ul class="lista">
+    {% for linha in resultado.invalidas %}
+    <li><strong>Linha {{ linha.linha }}</strong> · {{ linha.nome|default:"(sem nome)" }} · <span style="color:var(--vermelho-cor)">{{ linha.erros|join:"; " }}</span></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section class="cartao" style="margin-top:18px">
+  <header class="cartao-cab"><h2>Prévia ({{ resultado.validas|length }} credor(es))</h2></header>
+  <div class="tabela" style="border:0;border-radius:0;max-height:28rem;overflow-y:auto">
+    <table>
+      <thead>
+        <tr><th>#</th><th>Credor</th><th>CPF/CNPJ</th><th>Classe</th><th>Valor</th><th>Situação</th></tr>
+      </thead>
+      <tbody>
+        {% for linha in resultado.validas %}
+        <tr>
+          <td class="texto-fraco num">{{ linha.linha }}</td>
+          <td style="font-weight:500">{{ linha.nome }}</td>
+          <td class="num texto-suave">{{ linha.documento|default:"—" }}</td>
+          <td>{{ linha.classe }}</td>
+          <td class="num">{{ linha.valor_arrolado|moeda }}</td>
+          <td class="texto-suave">{{ linha.situacao }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if resultado.colunas_ignoradas %}
+  <div class="cartao-rodape texto-fraco">Colunas ignoradas na planilha: {{ resultado.colunas_ignoradas|join:", " }}</div>
+  {% endif %}
+  <div class="cartao-rodape">
+    <form method="post" action="{% url 'processos:credores_importar_confirmar' importacao.pk %}" class="form-acoes" style="margin:0">
+      {% csrf_token %}
+      <input type="hidden" name="politica" value="{{ politica }}">
+      <button class="btn btn-primario" type="submit">Confirmar e gravar {{ resultado.validas|length }} credor(es)</button>
+      <a class="btn-texto" href="{{ processo.get_absolute_url }}">Cancelar</a>
+      <span class="texto-fraco">
+        Credores já cadastrados:
+        {% if politica == 'atualizar' %}serão atualizados{% elif politica == 'ignorar' %}serão mantidos como estão{% else %}serão criados de novo{% endif %}.
+      </span>
+    </form>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

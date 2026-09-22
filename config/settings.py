@@ -46,6 +46,8 @@ INSTALLED_APPS = [
     "apps.portal",
     "apps.integracoes",
     "apps.notificacoes",
+    "apps.publico",
+    "apps.relacionamento",
 ]
 
 MIDDLEWARE = [
@@ -105,9 +107,16 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+# O manifesto so existe depois do collectstatic, entao ele e opcional: ligue
+# DJANGO_STATIC_MANIFEST=True no servidor, onde o collectstatic roda no deploy.
+_ESTATICOS = (
+    "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    if env_bool("DJANGO_STATIC_MANIFEST", False)
+    else "whitenoise.storage.CompressedStaticFilesStorage"
+)
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    "staticfiles": {"BACKEND": _ESTATICOS},
 }
 
 MEDIA_URL = "media/"

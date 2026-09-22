@@ -65,3 +65,30 @@ class ParcelaForm(forms.ModelForm):
             "vencimento": forms.DateInput(attrs={"type": "date"}),
             "pago_em": forms.DateInput(attrs={"type": "date"}),
         }
+
+
+class ImportacaoCredoresForm(forms.Form):
+    """Upload da planilha do quadro de credores."""
+
+    POLITICAS = [
+        ("atualizar", "Atualizar os credores ja cadastrados"),
+        ("ignorar", "Manter como esta e importar so os novos"),
+        ("duplicar", "Importar tudo como novo (pode duplicar)"),
+    ]
+
+    arquivo = forms.FileField(
+        label="Planilha (.xlsx ou .csv)",
+        help_text="A primeira linha deve ser o cabecalho.",
+    )
+    politica = forms.ChoiceField(
+        label="Credor ja cadastrado", choices=POLITICAS, initial="atualizar"
+    )
+
+    def clean_arquivo(self):
+        arquivo = self.cleaned_data["arquivo"]
+        if arquivo.size > 10 * 1024 * 1024:
+            raise forms.ValidationError("Arquivo muito grande (limite de 10 MB).")
+        nome = arquivo.name.lower()
+        if not nome.endswith((".xlsx", ".xlsm", ".csv", ".txt")):
+            raise forms.ValidationError("Envie um arquivo .xlsx ou .csv.")
+        return arquivo

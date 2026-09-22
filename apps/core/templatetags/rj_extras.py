@@ -25,11 +25,6 @@ def moeda(valor):
 
 @register.filter(name="badge_cor")
 def badge_cor(chave):
-    cores = {
-        "verde": "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
-        "amarelo": "bg-amber-50 text-amber-800 ring-amber-600/20",
-        "vermelho": "bg-rose-50 text-rose-700 ring-rose-600/20",
-        "azul": "bg-sky-50 text-sky-700 ring-sky-600/20",
-        "cinza": "bg-slate-100 text-slate-700 ring-slate-500/20",
-    }
-    return cores.get(chave, cores["cinza"])
+    """Classe da etiqueta a partir da familia de cor (verde, amarelo...)."""
+    familias = {"verde", "amarelo", "vermelho", "azul", "cinza"}
+    return f"etiqueta--{chave}" if chave in familias else "etiqueta--cinza"

@@ -1,0 +1,45 @@
+{% load static %}<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}{{ APP_NOME }} — reestruturação empresarial{% endblock %}</title>
+  <meta name="description" content="{% block descricao %}Consultoria de reestruturação empresarial com transparência total: você acompanha cada etapa, cada credor e cada real economizado.{% endblock %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/rj360.css' %}">
+</head>
+<body>
+<div class="site">
+  <header class="site-topo">
+    <div class="faixa">
+      <div>
+        <a class="marca-nome" href="{% url 'core:home' %}">{{ APP_NOME }}</a>
+        <div class="marca-sub">Reestruturação empresarial</div>
+      </div>
+      <nav class="site-nav">
+        <a href="{% url 'publico:jornada' %}">Jornada</a>
+        <a href="{% url 'publico:quiz' %}">Diagnóstico</a>
+        <a class="btn" href="{% url 'accounts:login' %}">Área do cliente</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="site-corpo">
+    {% if messages %}
+    <div class="site-secao compacta">{% include "partials/messages.html" %}</div>
+    {% endif %}
+    {% block conteudo_site %}{% endblock %}
+  </main>
+
+  <footer class="site-rodape">
+    <div class="faixa">
+      <strong>{{ APP_NOME }}</strong> — consultoria de reestruturação empresarial.
+      Consultoria com advogados parceiros inscritos na OAB. Não constitui promessa de resultado.
+      Tratamento de dados em conformidade com a LGPD.
+    </div>
+  </footer>
+</div>
+</body>
+</html>

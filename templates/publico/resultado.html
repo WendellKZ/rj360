@@ -10,6 +10,10 @@
       <p>{{ mensagem_resultado }}</p>
       <div class="prazo-retorno">Retorno humano em até {{ prazo }}</div>
 
+      <a class="btn btn-primario btn-grande" style="margin-top:18px" href="{{ whatsapp }}" target="_blank" rel="noopener">
+        Continuar no WhatsApp com o resumo
+      </a>
+
       <div class="respostas-lista">
         {% for item in diagnostico.respostas %}
         <span class="item">{{ item.resposta }}</span>

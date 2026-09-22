@@ -1,4 +1,5 @@
 {% extends "publico/base_site.html" %}
+{% load static %}
 {% block titulo %}A jornada do túnel — {{ APP_NOME }}{% endblock %}
 {% block conteudo_site %}
 <section class="site-secao">
@@ -6,9 +7,17 @@
   <p class="subtitulo-secao">Do primeiro contato até a luz no fim do túnel: seis etapas, com dia e
     duração. Previsibilidade, não promessa.</p>
 
-  <div class="etapas-jornada">
+  <div class="jornada-controles">
+    <div>
+      <div class="resumo" data-jornada-resumo>Seis etapas · D+0 até D+180</div>
+      <div class="jornada-barra"><span data-jornada-barra></span></div>
+    </div>
+    <button class="btn" type="button" data-jornada-botao hidden>Simular minha jornada</button>
+  </div>
+
+  <div class="etapas-jornada" data-jornada>
     {% for etapa in etapas %}
-    <article class="etapa-jornada">
+    <article class="etapa-jornada" data-titulo="{{ etapa.titulo }}">
       <div class="cabeca">
         <span class="dia">{{ etapa.dia }}</span>
         {% if etapa.duracao %}<span class="duracao">{{ etapa.duracao }}</span>{% endif %}
@@ -18,7 +27,7 @@
       <div class="respiro"><strong>Seu respiro</strong>{{ etapa.respiro }}</div>
     </article>
     {% endfor %}
-    <div class="luz-final">Luz no fim do túnel</div>
+    <div class="luz-final" data-jornada-luz>Luz no fim do túnel</div>
   </div>
 
   <div class="chamada-final" style="margin-top:34px">
@@ -27,4 +36,8 @@
     <a class="btn btn-primario btn-grande" href="{% url 'publico:quiz' %}">Fazer diagnóstico agora</a>
   </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/jornada.js' %}" defer></script>
 {% endblock %}

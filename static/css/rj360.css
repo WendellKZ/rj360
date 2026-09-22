@@ -436,3 +436,38 @@ details[open] > summary { margin-bottom: 14px; }
 .reuniao .quando-bloco .dia { font-family: var(--serif); font-size: 22px; line-height: 1; }
 .reuniao .quando-bloco .mes { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--tinta-fraca); }
 .reuniao .corpo { flex: 1; min-width: 0; }
+
+/* ------------------------------------------- simulacao da jornada (opcional) */
+
+.jornada-controles { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+.jornada-controles .resumo { font-size: 13.5px; color: var(--tinta-suave); }
+.jornada-barra { height: 5px; background: var(--superficie-3); border-radius: 3px; overflow: hidden; margin-top: 8px; min-width: 220px; }
+.jornada-barra span { display: block; height: 100%; width: 0; background: var(--acento); transition: width .4s ease; }
+.etapa-jornada { transition: opacity .35s ease, border-color .35s ease; }
+.etapa-jornada.apagada { opacity: .45; border-left-color: var(--linha); }
+.etapa-jornada.acesa { border-left-color: var(--acento); }
+.luz-final { transition: box-shadow .5s ease, background .5s ease; }
+.luz-final.acesa { box-shadow: 0 0 60px 18px rgba(224, 207, 154, .75); }
+@media (prefers-reduced-motion: reduce) {
+  .etapa-jornada, .luz-final, .jornada-barra span { transition: none; }
+}
+
+/* ---------------------------------------------------- avisos do portal (sino) */
+
+.sino { position: relative; }
+.sino > summary { list-style: none; cursor: pointer; padding: 6px 12px; border-radius: var(--raio-p); border: 1px solid #4a463f; color: #c9c1b3; font-size: 13.5px; }
+.sino > summary::-webkit-details-marker { display: none; }
+.sino > summary:hover { background: var(--escuro-hover); color: var(--superficie); }
+.sino .contagem { margin-left: 4px; }
+.sino .painel {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 30; width: 330px;
+  background: var(--superficie); color: var(--tinta); border: 1px solid var(--linha);
+  border-radius: var(--raio); box-shadow: 0 16px 40px rgba(31, 29, 26, .18); overflow: hidden;
+}
+.sino .painel .aviso-item { display: block; padding: 11px 14px; border-bottom: 1px solid var(--linha-suave); }
+.sino .painel .aviso-item:last-child { border-bottom: 0; }
+.sino .painel .aviso-item:hover { background: var(--superficie-2); text-decoration: none; }
+.sino .painel .aviso-item .texto { color: var(--tinta); font-size: 13.5px; }
+.sino .painel .aviso-item .quando { font-size: 11.5px; color: var(--tinta-fraca); }
+.sino .painel .aviso-item.alerta .quando { color: var(--vermelho-cor); }
+.sino .painel .vazio { padding: 22px 14px; font-size: 13px; }

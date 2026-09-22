@@ -46,6 +46,16 @@
       </div>
       {% endfor %}
     </div>
+
+    {% if etapa_final %}
+    <details style="margin-top:14px">
+      <summary>o que vem depois?</summary>
+      <div style="background:var(--superficie-3);border-radius:var(--raio-p);padding:12px 14px;font-size:13px">
+        <strong>Etapa 6 — {{ etapa_final.titulo }}:</strong> {{ etapa_final.desc }}
+        {{ etapa_final.respiro }}
+      </div>
+    </details>
+    {% endif %}
   </div>
 </section>
 

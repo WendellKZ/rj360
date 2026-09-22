@@ -15,4 +15,7 @@
   {% endif %}
   <button class="btn btn-primario btn-largo" style="margin-top:18px" type="submit">Entrar</button>
 </form>
+<p class="texto-fraco" style="margin-top:18px;text-align:center">
+  É cliente? <a href="{% url 'accounts:codigo_pedir' %}">entrar com código</a>
+</p>
 {% endblock %}

@@ -205,3 +205,39 @@ class PainelRelacionamentoTest(BasePortal):
         self.client.force_login(self.cliente)
         resposta = self.client.get(reverse("relacionamento:painel", args=[self.processo.pk]))
         self.assertEqual(resposta.status_code, 403)
+
+
+class NotificacoesPortalTest(BasePortal):
+    def test_lista_pendencias_do_cliente(self):
+        from apps.relacionamento.models import DocumentoSolicitado
+
+        DocumentoSolicitado.objects.create(
+            processo=self.processo, titulo="DAS", prazo=timezone.localdate() - timedelta(days=1)
+        )
+        Mensagem.objects.create(processo=self.processo, autor=self.interno, texto="Oi")
+        Reuniao.objects.create(
+            processo=self.processo, titulo="Alinhamento", quando=timezone.now() + timedelta(days=2)
+        )
+
+        self.client.force_login(self.cliente)
+        resposta = self.client.get(reverse("portal:credores"))
+        avisos = resposta.context["notificacoes"]
+        textos = [aviso["texto"] for aviso in avisos]
+
+        self.assertIn("Documento pendente: DAS", textos)
+        self.assertTrue(any("mensagem" in texto for texto in textos))
+        self.assertTrue(any("Alinhamento" in texto for texto in textos))
+        self.assertTrue(avisos[0]["alerta"])  # o documento atrasado vem primeiro e sinalizado
+
+    def test_sem_pendencias_nao_gera_aviso(self):
+        self.client.force_login(self.cliente)
+        resposta = self.client.get(reverse("portal:credores"))
+        self.assertEqual(resposta.context["notificacoes"], [])
+
+    def test_avisos_nao_vazam_de_outra_empresa(self):
+        from apps.relacionamento.models import DocumentoSolicitado
+
+        DocumentoSolicitado.objects.create(processo=self.processo_outro, titulo="Documento alheio")
+        self.client.force_login(self.cliente)
+        resposta = self.client.get(reverse("portal:credores"))
+        self.assertEqual(resposta.context["notificacoes"], [])

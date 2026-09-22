@@ -71,9 +71,24 @@
         <a class="{% if secao == 'reunioes' %}ativo{% endif %}" href="{% url 'portal:reunioes' %}">Reuniões</a>
         <a class="{% if secao == 'conversa' %}ativo{% endif %}" href="{% url 'portal:conversa' %}">Conversa</a>
       </nav>
-      <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}
-        <button class="sair" type="submit">Sair</button>
-      </form>
+      <div style="display:flex;align-items:center;gap:10px">
+        <details class="sino">
+          <summary>Avisos{% if notificacoes %}<span class="contagem">{{ notificacoes|length }}</span>{% endif %}</summary>
+          <div class="painel">
+            {% for aviso in notificacoes %}
+            <a class="aviso-item {% if aviso.alerta %}alerta{% endif %}" href="{% url aviso.url %}">
+              <div class="texto">{{ aviso.texto }}</div>
+              <div class="quando">{{ aviso.quando }}</div>
+            </a>
+            {% empty %}
+            <div class="vazio">Nada pendente por aqui. Seguimos acompanhando o processo.</div>
+            {% endfor %}
+          </div>
+        </details>
+        <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}
+          <button class="sair" type="submit">Sair</button>
+        </form>
+      </div>
     </div>
   </header>
   <main class="portal-conteudo">

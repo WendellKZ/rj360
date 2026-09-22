@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block titulo %}Entrar com código - {{ APP_NOME }}{% endblock %}
+{% block conteudo_publico %}
+<div style="text-align:center;margin-bottom:22px">
+  <div class="serif" style="font-size:30px;font-weight:600">{{ APP_NOME }}</div>
+  <p class="texto-fraco" style="margin:6px 0 0">Área do cliente · seu caso, seu espaço</p>
+</div>
+
+<h1 style="font-size:20px;margin-bottom:6px">Bem-vindo de volta</h1>
+<p class="texto-suave" style="margin-top:0">Digite o e-mail ou o celular cadastrado — enviamos um
+  código de 6 dígitos. Sem senha para decorar.</p>
+
+{% if erro %}<div class="aviso aviso--error">{{ erro }}</div>{% endif %}
+
+<form method="post">
+  {% csrf_token %}
+  <div class="campo">
+    <label for="contato">E-mail ou celular</label>
+    <input type="text" id="contato" name="contato" autocomplete="username" required
+           placeholder="voce@empresa.com.br">
+  </div>
+  <button class="btn btn-primario btn-largo" style="margin-top:16px" type="submit">Receber código</button>
+</form>
+
+<p class="texto-fraco" style="margin-top:18px;text-align:center">
+  <a href="{% url 'accounts:login' %}">entrar com usuário e senha</a>
+</p>
+{% endblock %}

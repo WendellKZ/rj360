@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block titulo %}Código de acesso - {{ APP_NOME }}{% endblock %}
+{% block conteudo_publico %}
+<div style="text-align:center;margin-bottom:22px">
+  <div class="serif" style="font-size:30px;font-weight:600">{{ APP_NOME }}</div>
+</div>
+
+{% if sem_pedido %}
+<div class="aviso aviso--warning">Peça o código antes de continuar.</div>
+<a class="btn btn-primario btn-largo" href="{% url 'accounts:codigo_pedir' %}">Pedir código</a>
+
+{% else %}
+<h1 style="font-size:20px;margin-bottom:6px">Chegou o código</h1>
+<p class="texto-suave" style="margin-top:0">Ele expira em 10 minutos e só funciona uma vez.</p>
+
+{% if erro %}<div class="aviso aviso--error">{{ erro }}</div>{% endif %}
+
+{% if expirado %}
+<a class="btn btn-primario btn-largo" href="{% url 'accounts:codigo_pedir' %}">Pedir um novo código</a>
+{% else %}
+<form method="post">
+  {% csrf_token %}
+  <div class="campo">
+    <label for="codigo">Código de 6 dígitos</label>
+    <input type="text" id="codigo" name="codigo" inputmode="numeric" pattern="[0-9]*"
+           maxlength="6" autocomplete="one-time-code" required
+           style="font-family:var(--serif);font-size:26px;letter-spacing:.3em;text-align:center">
+  </div>
+  <button class="btn btn-primario btn-largo" style="margin-top:16px" type="submit">Entrar</button>
+</form>
+<p class="texto-fraco" style="margin-top:16px;text-align:center">
+  <a href="{% url 'accounts:codigo_pedir' %}">← usar outro contato</a>
+</p>
+{% endif %}
+{% endif %}
+{% endblock %}

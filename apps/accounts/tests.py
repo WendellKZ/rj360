@@ -57,3 +57,129 @@ class AcessoPortalTest(TestCase):
         resposta = self.client.get(reverse("core:dashboard"))
         self.assertEqual(resposta.status_code, 302)
         self.assertIn(reverse("accounts:login"), resposta.url)
+
+
+class LoginPorCodigoTest(TestCase):
+    def setUp(self):
+        from apps.empresas.models import Empresa
+
+        self.empresa = Empresa.objects.create(
+            razao_social="Empresa A Ltda", cnpj="04.252.011/0001-10"
+        )
+        self.cliente = User.objects.create_user(
+            "carlos", password="x", email="carlos@empresa.com.br", telefone="(19) 98888-7777",
+            tipo=TipoUsuario.CLIENTE, empresa=self.empresa,
+        )
+        self.interno = User.objects.create_user("ana", password="x", email="ana@rj360.com.br")
+
+    def _pedir(self, contato="carlos@empresa.com.br"):
+        return self.client.post(reverse("accounts:codigo_pedir"), {"contato": contato})
+
+    def _codigo_enviado(self):
+        from django.core import mail
+
+        assunto = mail.outbox[-1].subject
+        return "".join(c for c in assunto if c.isdigit())
+
+    def test_fluxo_completo_por_email(self):
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            self._pedir()
+            codigo = self._codigo_enviado()
+            self.assertEqual(len(codigo), 6)
+
+            resposta = self.client.post(reverse("accounts:codigo_confirmar"), {"codigo": codigo})
+        self.assertRedirects(resposta, reverse("portal:home"))
+        self.assertEqual(int(self.client.session["_auth_user_id"]), self.cliente.pk)
+
+    def test_funciona_com_o_celular(self):
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            self._pedir("19988887777")
+            codigo = self._codigo_enviado()
+            self.client.post(reverse("accounts:codigo_confirmar"), {"codigo": codigo})
+        self.assertIn("_auth_user_id", self.client.session)
+
+    def test_codigo_nunca_fica_em_claro_no_banco(self):
+        from apps.accounts.codigos import CodigoAcesso
+
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            self._pedir()
+            codigo = self._codigo_enviado()
+        registro = CodigoAcesso.objects.get()
+        self.assertNotIn(codigo, registro.codigo_hash)
+        self.assertTrue(registro.codigo_hash.startswith("pbkdf2"))
+
+    def test_codigo_errado_gasta_tentativa_e_bloqueia(self):
+        from apps.accounts.codigos import MAX_TENTATIVAS, CodigoAcesso
+
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            self._pedir()
+            for _ in range(MAX_TENTATIVAS):
+                self.client.post(reverse("accounts:codigo_confirmar"), {"codigo": "000000"})
+            resposta = self.client.post(reverse("accounts:codigo_confirmar"), {"codigo": "000000"})
+
+        self.assertNotIn("_auth_user_id", self.client.session)
+        self.assertContains(resposta, "Peca um novo")
+        self.assertEqual(CodigoAcesso.objects.get().tentativas, MAX_TENTATIVAS)
+
+    def test_codigo_expirado_nao_entra(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from apps.accounts.codigos import CodigoAcesso
+
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            self._pedir()
+            codigo = self._codigo_enviado()
+            CodigoAcesso.objects.update(expira_em=timezone.now() - timedelta(minutes=1))
+            resposta = self.client.post(reverse("accounts:codigo_confirmar"), {"codigo": codigo})
+
+        self.assertNotIn("_auth_user_id", self.client.session)
+        self.assertContains(resposta, "expirou")
+
+    def test_codigo_so_serve_uma_vez(self):
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            self._pedir()
+            codigo = self._codigo_enviado()
+            self.client.post(reverse("accounts:codigo_confirmar"), {"codigo": codigo})
+            self.client.post(reverse("accounts:logout"))
+            resposta = self.client.post(reverse("accounts:codigo_confirmar"), {"codigo": codigo})
+
+        self.assertNotIn("_auth_user_id", self.client.session)
+        self.assertContains(resposta, "Peça o código")
+
+    def test_pedido_novo_invalida_o_anterior(self):
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            self._pedir()
+            primeiro = self._codigo_enviado()
+            self._pedir()
+            resposta = self.client.post(reverse("accounts:codigo_confirmar"), {"codigo": primeiro})
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_excesso_de_pedidos_e_barrado(self):
+        from apps.accounts.codigos import MAX_PEDIDOS_POR_JANELA
+
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            for _ in range(MAX_PEDIDOS_POR_JANELA):
+                self._pedir()
+            resposta = self._pedir()
+        self.assertContains(resposta, "Muitos pedidos")
+
+    def test_contato_desconhecido_nao_revela_nada(self):
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            from django.core import mail
+
+            resposta = self._pedir("ninguem@exemplo.com")
+            self.assertEqual(len(mail.outbox), 0)
+        self.assertRedirects(resposta, reverse("accounts:codigo_confirmar"))
+
+    def test_equipe_interna_nao_entra_por_codigo(self):
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            from django.core import mail
+
+            self._pedir("ana@rj360.com.br")
+            self.assertEqual(len(mail.outbox), 0)
+
+    def test_confirmar_sem_pedir_nao_quebra(self):
+        resposta = self.client.get(reverse("accounts:codigo_confirmar"))
+        self.assertContains(resposta, "Peça o código")

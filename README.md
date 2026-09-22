@@ -149,6 +149,22 @@ com o numero da linha, em vez de virar zero em silencio.
 Nada e gravado no envio: o arquivo fica guardado, a previa mostra o que sera
 importado e so a confirmacao grava. O historico das importacoes fica no admin.
 
+## Login por codigo (portal do cliente)
+
+O cliente entra sem senha: informa o e-mail ou o celular cadastrado e recebe um
+codigo de seis digitos. A equipe interna continua entrando por usuario e senha.
+
+Como funciona, do lado da seguranca:
+
+- o codigo e sorteado com `secrets` e guardado como **hash**, nunca em claro;
+- vale 10 minutos, serve uma unica vez, e um pedido novo invalida o anterior;
+- 5 tentativas erradas queimam o codigo; 3 pedidos em 15 minutos bloqueiam novos envios;
+- a tela responde a mesma coisa para contato existente ou nao, para nao revelar cadastro.
+
+O envio usa o canal de `CANAL_CODIGO_ACESSO` no `.env` — hoje `email` (usa o
+mesmo SMTP dos alertas). Para WhatsApp, basta implementar o envio em
+`apps/accounts/codigos.py::_enviar`; o resto do fluxo nao muda.
+
 ## Integracao com o DataJud (CNJ)
 
 A API publica do CNJ expoe os metadados processuais de todos os tribunais. A

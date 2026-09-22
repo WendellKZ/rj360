@@ -161,6 +161,13 @@ EMAIL_BACKEND = os.getenv(
 # Quem recebe os avisos de prazos sem responsavel definido.
 NOTIFICACOES_SUPERVISAO = env_list("NOTIFICACOES_SUPERVISAO")
 
+# Como o codigo de acesso do portal e enviado: "email" (padrao) ou "nenhum"
+# enquanto um canal de WhatsApp nao estiver contratado.
+CANAL_CODIGO_ACESSO = os.getenv("CANAL_CODIGO_ACESSO", "email")
+
+# Numero de WhatsApp da consultoria, so digitos com DDI (ex.: 5519999998888).
+WHATSAPP_NUMERO = os.getenv("WHATSAPP_NUMERO", "").strip()
+
 # Integracao com a API publica do DataJud (CNJ).
 # A chave e publica, mas fica no .env: https://datajud-wiki.cnj.jus.br/api-publica/acesso/
 DATAJUD_API_KEY = os.getenv("DATAJUD_API_KEY", "")

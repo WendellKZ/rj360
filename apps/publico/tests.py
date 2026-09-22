@@ -209,3 +209,16 @@ class ConversaoEmLeadTest(TestCase):
         self.client.logout()
         resposta = self.client.get(reverse("crm:diagnosticos"))
         self.assertEqual(resposta.status_code, 302)
+
+
+class WhatsAppTest(TestCase):
+    def test_resultado_traz_link_com_o_resumo(self):
+        diagnostico = Diagnostico.objects.create(
+            pontuacao=12, urgencia=Urgencia.ALTA,
+            respostas=[{"chave": "situacao", "pergunta": "Qual a situação atual?",
+                        "resposta": "Execução judicial", "pontos": 3}],
+        )
+        resposta = self.client.get(reverse("publico:resultado", args=[diagnostico.token]))
+        self.assertContains(resposta, "wa.me")
+        self.assertContains(resposta, "Continuar no WhatsApp")
+        self.assertIn("Execu", resposta.context["whatsapp"])

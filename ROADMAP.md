@@ -19,6 +19,11 @@
 - [ ] Relatorio mensal de atividades em PDF
 - [ ] Registro de auditoria (quem alterou o que)
 
+## Ainda do prototipo
+
+- [ ] Relatorio mensal em PDF (era demo no prototipo)
+- [ ] Envio do codigo de acesso por WhatsApp (depende de provedor contratado)
+
 ## Fase 3 - Escala
 
 - [ ] Multiplas consultorias no mesmo sistema (multi-tenant real)

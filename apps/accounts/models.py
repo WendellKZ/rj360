@@ -55,3 +55,8 @@ class User(AbstractUser):
             raise ValidationError(
                 {"empresa": "Usuario do tipo cliente precisa estar vinculado a uma empresa."}
             )
+
+
+# O login por codigo vive em codigos.py; aqui so reexportamos o model para o
+# Django registra-lo no app accounts.
+from .codigos import CodigoAcesso  # noqa: E402,F401

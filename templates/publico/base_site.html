@@ -21,7 +21,7 @@
       <nav class="site-nav">
         <a href="{% url 'publico:jornada' %}">Jornada</a>
         <a href="{% url 'publico:quiz' %}">Diagnóstico</a>
-        <a class="btn" href="{% url 'accounts:login' %}">Área do cliente</a>
+        <a class="btn" href="{% url 'accounts:codigo_pedir' %}">Área do cliente</a>
       </nav>
     </div>
   </header>
@@ -41,5 +41,6 @@
     </div>
   </footer>
 </div>
+{% block scripts %}{% endblock %}
 </body>
 </html>

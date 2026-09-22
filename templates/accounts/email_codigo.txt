@@ -1,0 +1,8 @@
+Ola, {{ usuario.get_full_name|default:usuario.username }}.
+
+Seu codigo de acesso ao portal e:
+
+    {{ codigo }}
+
+Ele vale por {{ minutos }} minutos e so pode ser usado uma vez.
+Se nao foi voce quem pediu, ignore esta mensagem — ninguem entra sem o codigo.

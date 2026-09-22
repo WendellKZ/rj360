@@ -8,6 +8,7 @@ from django.views.generic import DetailView, TemplateView, View
 from apps.accounts.mixins import ClienteMixin
 from apps.processos.models import Credor, ProcessoRJ, StatusPrazo
 from apps.relacionamento.forms import EnvioDocumentoForm, MensagemForm
+from apps.publico.conteudo import ETAPAS_JORNADA
 from apps.relacionamento.models import DocumentoSolicitado, Mensagem, Reuniao, StatusDocumento
 
 
@@ -46,6 +47,66 @@ class BasePortalView(ClienteMixin, TemplateView):
             )
         return self._processo
 
+    def notificacoes(self) -> list[dict]:
+        """O que merece a atencao do cliente agora, em ordem de urgencia."""
+        from datetime import timedelta
+
+        processo = self.processo
+        if not processo:
+            return []
+
+        hoje = timezone.localdate()
+        avisos = []
+        for pedido in processo.solicitacoes.filter(
+            status__in=[StatusDocumento.SOLICITADO, StatusDocumento.RECUSADO]
+        ).order_by("prazo"):
+            quando = "sem prazo definido"
+            if pedido.prazo:
+                quando = (
+                    f"venceu em {pedido.prazo:%d/%m}" if pedido.atrasado
+                    else f"ate {pedido.prazo:%d/%m}"
+                )
+            avisos.append({
+                "texto": f"Documento pendente: {pedido.titulo}",
+                "quando": quando,
+                "url": "portal:documentos",
+                "alerta": pedido.atrasado,
+            })
+
+        nao_lidas = processo.mensagens.filter(
+            lida_em__isnull=True, autor__tipo="INTERNO"
+        ).count()
+        if nao_lidas:
+            avisos.append({
+                "texto": f"{nao_lidas} mensagem(ns) nova(s) da equipe",
+                "quando": "na conversa",
+                "url": "portal:conversa",
+                "alerta": False,
+            })
+
+        proxima = (
+            processo.reunioes.filter(visivel_cliente=True, quando__gte=timezone.now())
+            .order_by("quando").first()
+        )
+        if proxima and proxima.quando.date() <= hoje + timedelta(days=7):
+            avisos.append({
+                "texto": f"Reuniao: {proxima.titulo}",
+                "quando": f"{proxima.quando:%d/%m as %H:%M}",
+                "url": "portal:reunioes",
+                "alerta": False,
+            })
+
+        for prazo in processo.prazos.filter(
+            status=StatusPrazo.PENDENTE, data_fim__lte=hoje + timedelta(days=15)
+        ).order_by("data_fim")[:3]:
+            avisos.append({
+                "texto": f"Prazo do processo: {prazo.titulo}",
+                "quando": f"{prazo.data_fim:%d/%m}",
+                "url": "portal:home",
+                "alerta": prazo.atrasado,
+            })
+        return avisos
+
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
         contexto["empresa"] = self.request.user.empresa
@@ -55,6 +116,7 @@ class BasePortalView(ClienteMixin, TemplateView):
             contexto["documentos_pendentes"] = self.processo.solicitacoes.filter(
                 status__in=[StatusDocumento.SOLICITADO, StatusDocumento.RECUSADO]
             ).count()
+            contexto["notificacoes"] = self.notificacoes()
         return contexto
 
 
@@ -86,6 +148,7 @@ class PortalHomeView(BasePortalView):
             processo.reunioes.filter(visivel_cliente=True, quando__gte=timezone.now())
             .order_by("quando").first()
         )
+        contexto["etapa_final"] = ETAPAS_JORNADA[-1]
         return contexto
 
 

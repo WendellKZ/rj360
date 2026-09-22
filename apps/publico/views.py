@@ -4,6 +4,10 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.generic import TemplateView, View
 
+from urllib.parse import quote
+
+from django.conf import settings
+
 from .conteudo import ETAPAS_JORNADA, PERGUNTAS_QUIZ, TOTAL_PERGUNTAS
 from .forms import ContatoDiagnosticoForm
 from .models import RESULTADOS, Diagnostico, Urgencia
@@ -111,6 +115,22 @@ class ResultadoView(View):
             return redirect("publico:resultado", token=diagnostico.token)
         return render(request, self.template_name, self._contexto(diagnostico, form))
 
+    def _resumo_whatsapp(self, diagnostico) -> str:
+        """Mensagem pronta para o visitante continuar a conversa no WhatsApp."""
+        linhas = [f"{item['pergunta']} {item['resposta']}" for item in diagnostico.respostas or []]
+        corpo = "\n".join(
+            [
+                "Olá! Fiz o diagnóstico no site da RJ360.",
+                "",
+                *linhas,
+                "",
+                f"Classificação: {diagnostico.get_urgencia_display().upper()} "
+                f"({diagnostico.pontuacao} pontos)",
+            ]
+        )
+        numero = settings.WHATSAPP_NUMERO
+        return f"https://wa.me/{numero}?text={quote(corpo)}" if numero else f"https://wa.me/?text={quote(corpo)}"
+
     def _contexto(self, diagnostico, form):
         texto = RESULTADOS.get(diagnostico.urgencia, {})
         return {
@@ -121,4 +141,5 @@ class ResultadoView(View):
             "prazo": Urgencia.prazo_legivel(diagnostico.urgencia),
             # vem do banco: um POST invalido nao pode fazer a tela dizer que recebeu
             "ja_enviou": diagnostico.tem_contato,
+            "whatsapp": self._resumo_whatsapp(diagnostico),
         }

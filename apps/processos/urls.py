@@ -13,6 +13,7 @@ urlpatterns = [
     path("<int:pk>/andamentos/novo/", views.AndamentoCreateView.as_view(), name="andamento_novo"),
     path("<int:pk>/prazos/novo/", views.PrazoCreateView.as_view(), name="prazo_novo"),
     path("<int:pk>/prazos/gerar/", views.GerarPrazosView.as_view(), name="prazos_gerar"),
+    path("<int:pk>/sincronizar/", views.SincronizarDataJudView.as_view(), name="sincronizar"),
     path("<int:pk>/documentos/novo/", views.DocumentoCreateView.as_view(), name="documento_novo"),
     path("<int:pk>/credores/novo/", views.CredorCreateView.as_view(), name="credor_novo"),
     path("<int:pk>/parcelas/nova/", views.ParcelaCreateView.as_view(), name="parcela_nova"),

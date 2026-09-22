@@ -7,7 +7,8 @@ services:
       POSTGRES_USER: rj360
       POSTGRES_PASSWORD: rj360
     ports:
-      - "5432:5432"
+      # 5433 no host: evita conflito com um Postgres ja instalado na maquina
+      - "5433:5432"
     volumes:
       - rj360_pgdata:/var/lib/postgresql/data
     healthcheck:

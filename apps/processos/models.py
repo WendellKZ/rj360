@@ -88,6 +88,11 @@ class ProcessoRJ(TimeStampedModel):
     valor_divida = models.DecimalField(
         "valor total sujeito a RJ", max_digits=15, decimal_places=2, null=True, blank=True
     )
+    datajud_alias = models.CharField(
+        "sigla no DataJud", max_length=20, blank=True,
+        help_text="Use apenas se a sigla do tribunal acima nao for a do indice "
+                  "do CNJ (ex.: TJSP, TRT15, TRF3).",
+    )
     observacoes = models.TextField("observacoes", blank=True)
 
     class Meta:
@@ -183,11 +188,25 @@ class Andamento(TimeStampedModel):
         null=True,
         blank=True,
     )
+    id_externo = models.CharField(
+        "identificador na origem", max_length=64, blank=True,
+        help_text="Preenchido pela integracao com o tribunal para evitar duplicidade.",
+    )
+    codigo_movimento = models.PositiveIntegerField(
+        "codigo do movimento (CNJ)", null=True, blank=True
+    )
 
     class Meta:
         verbose_name = "andamento"
         verbose_name_plural = "andamentos"
         ordering = ["-data", "-id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["processo", "id_externo"],
+                condition=~models.Q(id_externo=""),
+                name="andamento_unico_por_origem",
+            )
+        ]
 
     def __str__(self) -> str:
         return f"{self.data:%d/%m/%Y} - {self.titulo}"
@@ -242,6 +261,11 @@ class Prazo(TimeStampedModel):
     @property
     def dias_restantes(self) -> int:
         return (self.data_fim - timezone.localdate()).days
+
+    @property
+    def dias_atraso(self) -> int:
+        """Dias corridos desde o vencimento (0 se ainda nao venceu)."""
+        return max(0, -self.dias_restantes)
 
     @property
     def atrasado(self) -> bool:

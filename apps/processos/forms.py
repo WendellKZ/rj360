@@ -8,7 +8,7 @@ class ProcessoForm(forms.ModelForm):
         model = ProcessoRJ
         fields = [
             "empresa", "numero_cnj", "fase", "valor_divida",
-            "tribunal", "comarca", "vara", "juiz", "advogado",
+            "tribunal", "datajud_alias", "comarca", "vara", "juiz", "advogado",
             "administrador_judicial", "aj_email", "aj_telefone",
             "data_distribuicao", "data_deferimento", "data_edital_52", "data_plano",
             "data_edital_53", "data_agc", "data_concessao", "encerrado_em",

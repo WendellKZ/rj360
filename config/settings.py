@@ -44,6 +44,8 @@ INSTALLED_APPS = [
     "apps.processos",
     "apps.crm",
     "apps.portal",
+    "apps.integracoes",
+    "apps.notificacoes",
 ]
 
 MIDDLEWARE = [
@@ -127,6 +129,37 @@ MESSAGE_TAGS = {
 
 # Prazos: quantos dias antes do vencimento um prazo entra no alerta do painel.
 PRAZO_ALERTA_DIAS = int(os.getenv("PRAZO_ALERTA_DIAS", "15"))
+
+# Endereco publico do sistema, usado nos links dos e-mails.
+SITE_URL = os.getenv("SITE_URL", "http://localhost:8000")
+
+# E-mail. Sem SMTP configurado, as mensagens saem no terminal (util em dev).
+EMAIL_HOST = os.getenv("EMAIL_HOST", "")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
+EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
+EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "20"))
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "RJ360 <nao-responda@localhost>")
+EMAIL_BACKEND = os.getenv(
+    "EMAIL_BACKEND",
+    "django.core.mail.backends.smtp.EmailBackend"
+    if EMAIL_HOST
+    else "django.core.mail.backends.console.EmailBackend",
+)
+
+# Quem recebe os avisos de prazos sem responsavel definido.
+NOTIFICACOES_SUPERVISAO = env_list("NOTIFICACOES_SUPERVISAO")
+
+# Integracao com a API publica do DataJud (CNJ).
+# A chave e publica, mas fica no .env: https://datajud-wiki.cnj.jus.br/api-publica/acesso/
+DATAJUD_API_KEY = os.getenv("DATAJUD_API_KEY", "")
+DATAJUD_BASE_URL = os.getenv("DATAJUD_BASE_URL", "https://api-publica.datajud.cnj.jus.br")
+DATAJUD_AUTH_SCHEME = os.getenv("DATAJUD_AUTH_SCHEME", "APIKey")
+DATAJUD_TIMEOUT = int(os.getenv("DATAJUD_TIMEOUT", "30"))
+# Andamentos importados do tribunal ficam restritos a equipe ate serem liberados.
+DATAJUD_ANDAMENTOS_VISIVEIS_CLIENTE = env_bool("DATAJUD_ANDAMENTOS_VISIVEIS_CLIENTE", False)
 
 if not DEBUG:
     SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", True)

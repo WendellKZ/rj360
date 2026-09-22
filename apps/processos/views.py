@@ -9,6 +9,9 @@ from django.views.generic import CreateView, DetailView, ListView, UpdateView, V
 
 from apps.accounts.mixins import EquipeInternaMixin
 
+from apps.integracoes.models import StatusSincronizacao
+from apps.integracoes.services import sincronizar_processo
+
 from .forms import AndamentoForm, CredorForm, DocumentoForm, ParcelaForm, PrazoForm, ProcessoForm
 from .models import FaseProcesso, Prazo, ProcessoRJ, StatusPrazo
 from .services import gerar_prazos_legais, resumo_credores
@@ -66,6 +69,7 @@ class ProcessoDetailView(EquipeInternaMixin, DetailView):
         contexto["form_documento"] = kwargs.get("form_documento") or DocumentoForm()
         contexto["form_credor"] = kwargs.get("form_credor") or CredorForm()
         contexto["form_parcela"] = kwargs.get("form_parcela") or ParcelaForm()
+        contexto["ultima_sincronizacao"] = processo.sincronizacoes.first()
         return contexto
 
 
@@ -195,3 +199,18 @@ class AgendaPrazosView(EquipeInternaMixin, ListView):
         contexto["status_atual"] = self.request.GET.get("status", StatusPrazo.PENDENTE)
         contexto["status_opcoes"] = StatusPrazo.choices
         return contexto
+
+
+class SincronizarDataJudView(EquipeInternaMixin, View):
+    """Importa as movimentacoes do processo a partir da API publica do CNJ."""
+
+    def post(self, request, pk):
+        processo = get_object_or_404(ProcessoRJ, pk=pk)
+        registro = sincronizar_processo(processo, usuario=request.user)
+        if registro.status == StatusSincronizacao.SUCESSO:
+            messages.success(request, f"Sincronizado com o tribunal: {registro.mensagem}")
+        elif registro.status == StatusSincronizacao.SEM_RESULTADO:
+            messages.warning(request, registro.mensagem)
+        else:
+            messages.error(request, f"Nao foi possivel sincronizar: {registro.mensagem}")
+        return redirect(processo.get_absolute_url())

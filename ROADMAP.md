@@ -12,8 +12,9 @@
 
 ## Fase 2 - Automacao
 
-- [ ] Integracao com a API publica do CNJ/DataJud para importar movimentacoes
-- [ ] Notificacoes por e-mail de prazos a vencer (tarefa agendada)
+- [x] Integracao com a API publica do CNJ/DataJud para importar movimentacoes
+- [x] Notificacoes por e-mail de prazos a vencer (tarefa agendada)
+- [ ] Agendamento automatico do sync_datajud (sem depender do agendador do SO)
 - [ ] Importacao do quadro de credores por planilha
 - [ ] Relatorio mensal de atividades em PDF
 - [ ] Registro de auditoria (quem alterou o que)

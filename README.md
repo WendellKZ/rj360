@@ -30,6 +30,21 @@ simples.
 - Andamentos e documentos marcados como visiveis ao cliente.
 - Proximos prazos e situacao atual do processo.
 
+**Integracao com o tribunal (DataJud/CNJ)**
+
+- Importacao das movimentacoes pela API publica do CNJ, por processo ou em lote.
+- Cada movimento vira um andamento com o codigo da tabela do CNJ; rodar de novo
+  nao duplica nada.
+- Historico de cada sincronizacao (o que veio, quantos andamentos novos, erros).
+
+**Alertas de prazo por e-mail**
+
+- Resumo diario para cada responsavel, separado em atrasados, vencem hoje e a
+  vencer, com link direto para o processo.
+- Prazo sem responsavel vai para os e-mails de supervisao.
+- O mesmo prazo nao e avisado duas vezes no mesmo dia, mas volta no dia
+  seguinte enquanto estiver pendente.
+
 **Prospeccao**
 
 - Funil com estagios (novo, contato, diagnostico, proposta, negociacao).
@@ -66,6 +81,9 @@ Com Docker (recomendado):
 ```bash
 docker compose up -d
 ```
+
+O container publica o Postgres na porta **5433** do host, para nao conflitar com
+um Postgres ja instalado na maquina (que costuma ocupar a 5432).
 
 Sem Docker, edite o `.env`:
 
@@ -104,6 +122,104 @@ python manage.py runserver
 python manage.py test
 ```
 
+## Integracao com o DataJud (CNJ)
+
+A API publica do CNJ expoe os metadados processuais de todos os tribunais. A
+chave de acesso e publica, mas nao fica no codigo: pegue em
+[datajud-wiki.cnj.jus.br/api-publica/acesso](https://datajud-wiki.cnj.jus.br/api-publica/acesso/)
+e coloque no `.env`:
+
+```
+DATAJUD_API_KEY=sua-chave-aqui
+```
+
+O processo precisa ter a **sigla do tribunal** preenchida no padrao do CNJ. O
+sistema valida contra a lista oficial de endpoints:
+
+- Superiores: `TST`, `TSE`, `STJ`, `STM` (o STF nao tem endpoint publico)
+- Federal: `TRF1` a `TRF6`
+- Estadual: `TJSP`, `TJRJ`, ... e `TJDFT`
+- Trabalho: `TRT1` a `TRT24`
+- Eleitoral: `TRE-SP`, `TRE-RJ`, ... e `TRE-DFT`
+- Militar estadual: `TJMMG`, `TJMRS`, `TJMSP`
+
+Se o indice do tribunal for diferente da sigla, use o campo "sigla no DataJud"
+para sobrescrever.
+
+Na pagina do processo ha o botao **Sincronizar com o tribunal**. Em lote:
+
+```bash
+python manage.py sync_datajud                    # processos em curso
+python manage.py sync_datajud --processo 12
+python manage.py sync_datajud --numero 1002345-12.2025.8.26.0114
+python manage.py sync_datajud --todos            # inclui encerrados
+```
+
+Para rodar diariamente, agende o comando no Agendador de Tarefas do Windows ou
+no cron do servidor.
+
+Cuidados embutidos:
+
+- Andamentos importados entram **restritos a equipe**. So aparecem no portal do
+  cliente depois de liberados, ou se voce mudar
+  `DATAJUD_ANDAMENTOS_VISIVEIS_CLIENTE=True` no `.env`.
+- Processo que o tribunal marcou com **nivel de sigilo** nunca vai para o
+  portal, mesmo com a opcao acima ligada.
+- A data do movimento e gravada como o tribunal informou, sem conversao de
+  fuso — converter poderia jogar um ato da meia-noite para o dia anterior.
+
+## Alertas de prazo por e-mail
+
+Configure o SMTP no `.env`:
+
+```
+EMAIL_HOST=smtp.suaempresa.com.br
+EMAIL_PORT=587
+EMAIL_HOST_USER=nao-responda@suaempresa.com.br
+EMAIL_HOST_PASSWORD=sua-senha
+EMAIL_USE_TLS=True
+DEFAULT_FROM_EMAIL=RJ360 <nao-responda@suaempresa.com.br>
+NOTIFICACOES_SUPERVISAO=voce@suaempresa.com.br
+SITE_URL=https://rj360.suaempresa.com.br
+```
+
+Com `EMAIL_HOST` vazio, as mensagens saem no terminal em vez de serem
+enviadas — da para ver o resultado antes de ligar o SMTP.
+
+```bash
+python manage.py alertar_prazos --simular              # mostra sem enviar
+python manage.py alertar_prazos --para voce@email.com  # tudo para um endereco
+python manage.py alertar_prazos                        # envio real
+python manage.py alertar_prazos --dias 30              # janela maior
+```
+
+Quem recebe o que: cada prazo vai para o **responsavel** cadastrado nele. Prazo
+sem responsavel (ou com responsavel sem e-mail) vai para `NOTIFICACOES_SUPERVISAO`.
+
+### Agendar no Windows
+
+No Agendador de Tarefas, crie uma tarefa diaria (ex.: 8h) com:
+
+- Programa: `C:\Users\SEU-USUARIO\Documents\rj360\.venv\Scripts\python.exe`
+- Argumentos: `manage.py alertar_prazos`
+- Iniciar em: `C:\Users\SEU-USUARIO\Documents\rj360`
+
+Mesma receita para o `sync_datajud`. Em servidor Linux, use o cron.
+
+### Termo de uso da API
+
+O [Termo de Uso do CNJ](https://datajud-wiki.cnj.jus.br/api-publica/termo-uso)
+diz que a API e fornecida "exclusivamente para fins legais, **nao comerciais** e
+autorizados" (clausula 3.3) e que o usuario concorda em "nao modificar,
+distribuir, vender ou explorar comercialmente a API ou qualquer informacao
+derivada dela" (clausula 3.8). O CNJ tambem nao garante precisao nem
+atualidade dos dados (clausula 3.6).
+
+Antes de usar a integracao em um servico cobrado do cliente, avalie isso com o
+juridico. Alternativas: consulta oficial no sistema do tribunal, contrato com
+um provedor licenciado de dados processuais, ou uso restrito a conferencia
+interna da equipe.
+
 ## Estrutura
 
 ```
@@ -124,8 +240,9 @@ templates/            telas (Tailwind + HTMX)
   sistema respeita o cadastro manual. O controle final e sempre humano.
 - **Visibilidade explicita**: andamentos e documentos so aparecem no portal se
   marcados como visiveis ao cliente.
-- **Entrada manual dos andamentos** nesta fase. A estrutura ja tem o campo
-  `fonte` preparado para a integracao com a API publica do CNJ/DataJud.
+- **Origem de cada andamento fica registrada** (`fonte`): lancamento manual ou
+  importacao do tribunal. A deduplicacao usa um identificador estavel do
+  movimento, entao sincronizar varias vezes e seguro.
 
 ## Proximos passos
 

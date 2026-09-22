@@ -25,7 +25,7 @@ class ProcessoRJAdmin(admin.ModelAdmin):
     inlines = [PrazoInline, AndamentoInline]
     fieldsets = (
         (None, {"fields": ("empresa", "numero_cnj", "fase", "valor_divida")}),
-        ("Juizo", {"fields": ("tribunal", "comarca", "vara", "juiz", "advogado")}),
+        ("Juizo", {"fields": ("tribunal", "datajud_alias", "comarca", "vara", "juiz", "advogado")}),
         ("Administrador judicial", {"fields": ("administrador_judicial", "aj_email", "aj_telefone")}),
         (
             "Marcos processuais",

@@ -1,0 +1,28 @@
+{{ app_nome }} - resumo de prazos em {{ hoje|date:"d/m/Y" }}
+
+Ola, {{ resumo.nome }}.
+{% if resumo.atrasados %}
+ATRASADOS ({{ resumo.atrasados|length }})
+{% for prazo in resumo.atrasados %}- {{ prazo.titulo }}
+  {{ prazo.processo.empresa }} | {{ prazo.processo.numero_formatado }}
+  Venceu em {{ prazo.data_fim|date:"d/m/Y" }} - ha {{ prazo.dias_atraso }} dia(s)
+  {{ prazo.base_legal|default:"controle interno" }}
+  {{ site_url }}{{ prazo.processo.get_absolute_url }}
+{% endfor %}{% endif %}{% if resumo.vencem_hoje %}
+VENCEM HOJE ({{ resumo.vencem_hoje|length }})
+{% for prazo in resumo.vencem_hoje %}- {{ prazo.titulo }}
+  {{ prazo.processo.empresa }} | {{ prazo.processo.numero_formatado }}
+  {{ prazo.base_legal|default:"controle interno" }}
+  {{ site_url }}{{ prazo.processo.get_absolute_url }}
+{% endfor %}{% endif %}{% if resumo.proximos %}
+A VENCER ({{ resumo.proximos|length }})
+{% for prazo in resumo.proximos %}- {{ prazo.titulo }}
+  {{ prazo.processo.empresa }} | {{ prazo.processo.numero_formatado }}
+  Vence em {{ prazo.data_fim|date:"d/m/Y" }} (faltam {{ prazo.dias_restantes }} dias)
+  {{ prazo.base_legal|default:"controle interno" }}
+  {{ site_url }}{{ prazo.processo.get_absolute_url }}
+{% endfor %}{% endif %}
+Agenda completa: {{ site_url }}/processos/agenda/
+
+Este e um aviso automatico do {{ app_nome }}. Os prazos sao calculados a partir
+das datas cadastradas e devem ser conferidos pelo advogado responsavel.
